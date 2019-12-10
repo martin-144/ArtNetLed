@@ -1,3 +1,5 @@
 .pio
 .clang_complete
 .gcc-flags.json
+HowToInstall.txt
+include/wifi.h
