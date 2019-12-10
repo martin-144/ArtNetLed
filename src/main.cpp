@@ -1,5 +1,6 @@
 #define FASTLED_ALLOW_INTERRUPTS 0
 #define FASTLED_ESP8266_RAW_PIN_ORDER
+
 #include <FastLED.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -8,7 +9,7 @@
 #include <string>
 
 // UDP settings
-const uint16_t udp_port= 6454;
+const uint16_t udp_port = 6454;
 WiFiUDP Udp;
 
 // ArtNet Settings
@@ -162,7 +163,7 @@ void calcNextColors()
           setColorDimmed(leds, i, red_bg, green_bg, blue_bg, brightness);
         }
       }
-  }
+   }
 }
 
 
