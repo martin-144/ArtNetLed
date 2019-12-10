@@ -4,11 +4,8 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <torch.h>
+#include <wifi.h>
 #include <string>
-
-// Wifi connection
-const char* wifi_ssid[2] = { "KB-Light", "MCWLAN2" };
-const char* wifi_pass[2] = { "kolping1963", "brechtelsbauerwpakey" };
 
 // UDP settings
 const uint16_t udp_port= 6454;
