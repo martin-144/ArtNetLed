@@ -1,13 +1,20 @@
+#ifndef torch.h
+#define torch.h
+
 #include "stdint.h"
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
 // Higher number = diameter of the torch gets larger
-const uint16_t ledsPerLevel = 8;
+// Ast 8
+// Lamp 14
+const uint16_t ledsPerLevel = 14;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
-const uint16_t levels = 26;
+// Ast 26
+// Lamp 28
+const uint16_t levels = 28;
 
 // set to true if you wound the torch clockwise (as seen from top). Note that
 // this reverses the entire animation (in contrast to mirrorText, which only
@@ -71,7 +78,8 @@ uint8_t blue_bg = 0;
 uint8_t red_bias = 20;
 uint8_t green_bias = 0;
 uint8_t blue_bias = 0;
-int red_energy = 180;
+int red_energy =
+0;
 int green_energy = 100;
 int blue_energy = 0;
 
@@ -95,3 +103,5 @@ void reduce(uint8_t *aByte, uint8_t aAmount, uint8_t aMin);
 void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax);
 void setColor(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue);
 void setColorDimmed(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aBrightness);
+
+#endif /* torch.h */

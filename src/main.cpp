@@ -2,15 +2,36 @@
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 
 #include <FastLED.h>
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
+// #include <ESP8266WiFi.h>
+// #include <WiFiUdp.h>
+#include <Artnet.h>
 #include <torch.h>
 #include <wifi.h>
 #include <string>
 
+ArtnetReceiver artnet;
+uint32_t universe1 = 1;
+uint32_t universe2 = 2;
+
+// // ARTNET CODES
+// struct artnet_t {
+//   const uint8_t data = 0x50;
+//   const uint8_t poll = 0x20;
+//   const uint8_t poll_reply = 0x21;
+//   const uint8_t header_size = 17;
+// } artnet;
+
+
+/* replaced by above
+const uint8_t artnet_data = 0x50;
+const uint8_t artnet_poll = 0x20;
+const uint8_t artnet_poll_reply = 0x21;
+const uint8_t artnet_header = 17;
+*/
+
 // UDP settings
-const uint16_t udp_port = 6454;
-WiFiUDP Udp;
+// const uint16_t udp_port = 6454;
+// WiFiUDP Udp;
 
 // ArtNet Settings
 uint16_t artnet_levels;
@@ -25,6 +46,7 @@ const int interval = 500;
 const int ledPin = 0x02;
 
 
+#if 0
 void RecieveUdp()
 /*
 Linux command to test:
@@ -32,6 +54,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
   byte packet[18 + (numLeds * 3)];
+  byte header[artnet.header_size];
+
   int packetSize = Udp.parsePacket();
 
   //test if a packet has been recieved
@@ -41,9 +65,33 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     // Print received byte
     // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
 
+    // Read Artnet Header
+    int len = Udp.read(header, artnet.header_size + 1);
+
+    // Test for empty packet, if empty return
+    if(len < 1)
+      return;
+
+    if (header[9] == 0x20) // ArtNet OpPoll received
+    {
+      Serial.printf("ArtNet OpPoll received\n");
+    }
+
+    if (header[9] == 0x50) // ArtNet Data received
+    {
+      Serial.printf("ArtNet Net data received, Universe %d\n", header[15]);
+    }
+
+    /*
+    Serial.printf("%s\n", header); // For Debug
+    Serial.printf("0x%x, ", header[8]);
+    Serial.printf("0x%x, ", header[9]);
+    Serial.printf("0x%x\n", header[15]);
+    */
+
     // Read-in packet and get length
-    int len = Udp.read(packet, 18 + (numLeds * 3));
-    // Serial.printf("%s\n", packet); // For Debug
+    Udp.read(packet, 18 + (numLeds * 3));
+    Serial.printf("%s\n", packet); // For Debug
 
     //discard unread bytes
     Udp.flush();
@@ -83,6 +131,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     }
   }
 }
+#endif
+
 
 void calcNextEnergy()
 {
@@ -243,6 +293,12 @@ void setColorDimmed(struct CRGB *leds, uint16_t aLedNumber, uint8_t aRed, uint8_
   setColor(leds, aLedNumber, (aRed*aBrightness)>>8, (aGreen*aBrightness)>>8, (aBlue*aBrightness)>>8);
 }
 
+void callback(uint8_t* data, uint16_t size)
+{
+    // you can also use pre-defined callbacks
+    Serial.printf("Artnet callback");
+}
+
 // Main program
 // ============
 
@@ -262,7 +318,7 @@ void setup()
   // connect to WiFi network
   WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);
-
+  // WiFi.config(ip, gateway, subnet);
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -273,9 +329,9 @@ void setup()
     WiFi.begin(wifi_ssid[i], wifi_pass[i]);
     delay(4000);
     }
- }
+  }
 
-  Serial.println();
+  delay(1000);  Serial.println();
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
@@ -285,7 +341,24 @@ void setup()
   digitalWrite(ledPin, 1);
 
   // set up UDP receiver
-  Udp.begin(udp_port);
+  // Udp.begin(udp_port);
+  artnet.begin();
+
+  // if Artnet packet comes to this universe, this function (lambda) is called
+  artnet.subscribe(universe1, [&](uint8_t* data, uint16_t size)
+  {
+      Serial.print("lambda : artnet data (universe : ");
+      Serial.print(universe1);
+      Serial.println(") = ");
+      for (size_t i = 0; i < size; ++i)
+      {
+          Serial.print(data[i]); Serial.print(",");
+      }
+      Serial.println();
+  });
+
+  // you can also use pre-defined callbacks
+  artnet.subscribe(universe2, callback);
 
   // start LED port
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, numLeds);
@@ -301,7 +374,8 @@ void loop()
 {
 
  // get Art-Net
- RecieveUdp();
+ // RecieveUdp();
+ artnet.parse(); // check if artnet packet has come and execute callback
 
  // torch animation + text display + cheerlight background
  EVERY_N_MILLISECONDS(cycle_wait)
@@ -316,7 +390,7 @@ void loop()
 
  EVERY_N_MILLISECONDS(2000)
  {
-    Serial.println(".");
+    // Serial.println(".");
     digitalWrite(ledPin, 0);  // LED on
     delay(2);
     digitalWrite(ledPin, 1);  // LED off
