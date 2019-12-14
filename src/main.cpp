@@ -2,24 +2,20 @@
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 
 #include <FastLED.h>
-// #include <ESP8266WiFi.h>
-// #include <WiFiUdp.h>
-#include <Artnet.h>
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 #include <torch.h>
 #include <wifi.h>
 #include <string>
 
-ArtnetReceiver artnet;
-uint32_t universe1 = 1;
-uint32_t universe2 = 2;
 
-// // ARTNET CODES
-// struct artnet_t {
-//   const uint8_t data = 0x50;
-//   const uint8_t poll = 0x20;
-//   const uint8_t poll_reply = 0x21;
-//   const uint8_t header_size = 17;
-// } artnet;
+// ARTNET CODES
+struct artnet_t {
+  const uint8_t data = 0x50;
+  const uint8_t poll = 0x20;
+  const uint8_t poll_reply = 0x21;
+  const uint8_t header_size = 17;
+} artnet;
 
 
 /* replaced by above
@@ -31,23 +27,20 @@ const uint8_t artnet_header = 17;
 
 // UDP settings
 // const uint16_t udp_port = 6454;
-// WiFiUDP Udp;
+WiFiUDP Udp;
 
-// ArtNet Settings
-uint16_t artnet_levels;
-uint8_t  dmx_channel = 1;
+
 
 // Local fastLed Ports
 #define LED_PIN D8
-CRGB leds[numLeds];
 
 // Blue LED blink interval
 const int interval = 500;
 const int ledPin = 0x02;
 
+IPAddress broadcastIp(255 ,255 ,255 ,255);
 
-#if 0
-void RecieveUdp()
+void recieveUdp()
 /*
 Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
@@ -72,9 +65,18 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     if(len < 1)
       return;
 
+    Serial.printf("%s\n", header); // For Debug
+
     if (header[9] == 0x20) // ArtNet OpPoll received
     {
       Serial.printf("ArtNet OpPoll received\n");
+      Serial.println(Udp.remoteIP());
+      Serial.println(Udp.remotePort());
+
+      Udp.beginPacket(broadcastIP, Udp.remotePort());
+      // Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+      Udp.print("Art-Net"); // + ... to be continued
+      Udp.endPacket();
     }
 
     if (header[9] == 0x50) // ArtNet Data received
@@ -85,13 +87,13 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     /*
     Serial.printf("%s\n", header); // For Debug
     Serial.printf("0x%x, ", header[8]);
-    Serial.printf("0x%x, ", header[9]);
-    Serial.printf("0x%x\n", header[15]);
+    Serial.printf("0x%x, ", header[9]);IPAddress broadcastIp(255,255,255,255);
+    Serial.printf("0x%x\n", hUdp.remoteIP()eader[15]);
     */
 
     // Read-in packet and get length
-    Udp.read(packet, 18 + (numLeds * 3));
-    Serial.printf("%s\n", packet); // For Debug
+    Udp.read(packet, 8);
+    Serial.printf("%x\n", packet); // For Debug
 
     //discard unread bytes
     Udp.flush();
@@ -108,7 +110,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     {
       // Udp.beginPacketMulticast(WiFi.localIP(), multicastAddress, multicastPort);
       int dmx = 18 + dmx_channel - 1;
-
       /*
       for(int n = 0; n < numLeds; n++)
       {
@@ -131,173 +132,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     }
   }
 }
-#endif
-
-
-void calcNextEnergy()
-{
-  int i = 0;
-  for (int y=0; y<levels; y++) {
-    for (int x=0; x<ledsPerLevel; x++) {
-      uint8_t e = currentEnergy[i];
-      uint8_t m = energyMode[i];
-      switch (m) {
-        case torch_spark: {
-          // loose transfer up energy as long as the is any
-          reduce(&e, spark_tfr, 0);
-          // cell above is temp spark, sucking up energy from this cell until empty
-          if (y<artnet_levels-1) {
-            energyMode[i+ledsPerLevel] = torch_spark_temp;
-          }
-          // 20191206 Martin has introduced this for dynamic level control
-          else if (y>artnet_levels-1) {
-            energyMode[i+ledsPerLevel] = torch_passive;
-          }
-          break;
-        }
-        case torch_spark_temp: {
-          // just getting some energy from below
-          uint8_t e2 = currentEnergy[i-ledsPerLevel];
-          if (e2<spark_tfr) {
-            // cell below is exhausted, becomes passive
-            energyMode[i-ledsPerLevel] = torch_passive;
-            // gobble up rest of energy
-            increase(&e, e2, 255);
-            // loose some overall energy
-            e = ((int)e*spark_cap)>>8;
-            // this cell becomes active spark
-            energyMode[i] = torch_spark;
-          }
-          else {
-            increase(&e, spark_tfr, 255);
-          }
-          break;
-        }
-        case torch_passive: {
-          e = ((int)e*heat_cap)>>8;
-          increase(&e, ((((int)currentEnergy[i-1]+(int)currentEnergy[i+1])*side_rad)>>9) + (((int)currentEnergy[i-ledsPerLevel]*up_rad)>>8), 255);
-        }
-        default:
-          break;
-      }
-      nextEnergy[i++] = e;
-    }
-  }
-}
-
-
-const uint8_t energymap[32] = {0, 64, 96, 112, 128, 144, 152, 160, 168, 176, 184, 184, 192, 200, 200, 208, 208, 216, 216, 224, 224, 224, 232, 232, 232, 240, 240, 240, 240, 248, 248, 248};
-
-void calcNextColors()
-{
-  for (int i=0; i<numLeds; i++) {
-      uint16_t e = nextEnergy[i];
-      currentEnergy[i] = e;
-  //    leds.setColorDimmed(i, 255, 170, 0, e);const __FlashStringHelper *
-      if (e>250)
-        setColorDimmed(leds, i, 170, 170, e, brightness);
-      else {
-        if (e>0) {
-          // energy to brightness is non-linear
-          uint8_t eb = energymap[e>>3];
-          uint8_t r = red_bias;
-          uint8_t g = green_bias;
-          uint8_t b = blue_bias;
-          increase(&r, (eb*red_energy)>>8, 255);
-          increase(&g, (eb*green_energy)>>8, 255);
-          increase(&b, (eb*blue_energy)>>8, 255);
-          setColorDimmed(leds , i, r, g, b, brightness);
-        }
-        else {
-          // background, no energy
-          setColorDimmed(leds, i, red_bg, green_bg, blue_bg, brightness);
-        }
-      }
-   }
-}
-
-
-void injectRandom()
-{
-  // random flame energy at bottom row
-  for (int i=0; i<ledsPerLevel; i++) {
-    currentEnergy[i] = torch_random(flame_min, flame_max);
-    energyMode[i] = torch_nop;
-  }
-  // random sparks at second row
-  for (int i=ledsPerLevel; i<2*ledsPerLevel; i++) {
-    if (energyMode[i]!=torch_spark && torch_random(100, 0)<random_spark_probability) {
-      currentEnergy[i] = torch_random(spark_min, spark_max);
-      energyMode[i] = torch_spark;
-    }
-  }
-}
-
-// Utilities
-// =========
-
-void resetEnergy()
-{
-  for (int i=0; i<numLeds; i++) {
-    currentEnergy[i] = 0;
-    nextEnergy[i] = 0;
-    energyMode[i] = torch_passive;
-  }
-}
-// WiFi.begin("MCWLAN2", "brechtelsbauerwpakey");
-
-uint8_t torch_random(uint8_t aMinOrMax, uint8_t aMax)
-{
-  if (aMax==0)
-  {
-    aMax = aMinOrMax;
-    aMinOrMax = 0;
-  }
-  uint32_t r = aMinOrMax;
-  aMax = aMax - aMinOrMax + 1;
-  r += rand() % aMax;
-  return r;
-}
-
-
-void reduce(uint8_t *aByte, uint8_t aAmount, uint8_t aMin)
-{
-  int r = *aByte-aAmount;
-  if (r<aMin)
-    *aByte = aMin;
-  else
-    *aByte = (uint8_t)r;
-}
-
-
-void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax)
-{
-  int r = *aByte+aAmount;
-  if (r>aMax)
-    *aByte = aMax;
-  else
-   *aByte = (uint8_t)r;
-}
-
-void setColor(struct CRGB *leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue)
-{
-  if (aLedNumber>=numLeds) return; // invalid LED number
-  // linear brightness is stored with 5bit precision only
-  leds[aLedNumber].red = aRed;
-  leds[aLedNumber].green = aGreen;
-  leds[aLedNumber].blue = aBlue;
-}
-
-void setColorDimmed(struct CRGB *leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aBrightness)
-{
-  setColor(leds, aLedNumber, (aRed*aBrightness)>>8, (aGreen*aBrightness)>>8, (aBlue*aBrightness)>>8);
-}
-
-void callback(uint8_t* data, uint16_t size)
-{
-    // you can also use pre-defined callbacks
-    Serial.printf("Artnet callback");
-}
 
 // Main program
 // ============
@@ -306,7 +140,7 @@ void setup()
 {
   // start serial port
   Serial.begin(115200);
-  delay(2000);
+  delay(2000);IPAddress broadcastIp(255,255,255,255);
   Serial.print("Serial Starting...\n");
 
   // set LED port
@@ -331,7 +165,7 @@ void setup()
     }
   }
 
-  delay(1000);  Serial.println();
+  delay(1000);
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
@@ -341,24 +175,7 @@ void setup()
   digitalWrite(ledPin, 1);
 
   // set up UDP receiver
-  // Udp.begin(udp_port);
-  artnet.begin();
-
-  // if Artnet packet comes to this universe, this function (lambda) is called
-  artnet.subscribe(universe1, [&](uint8_t* data, uint16_t size)
-  {
-      Serial.print("lambda : artnet data (universe : ");
-      Serial.print(universe1);
-      Serial.println(") = ");
-      for (size_t i = 0; i < size; ++i)
-      {
-          Serial.print(data[i]); Serial.print(",");
-      }
-      Serial.println();
-  });
-
-  // you can also use pre-defined callbacks
-  artnet.subscribe(universe2, callback);
+  Udp.begin(6454);
 
   // start LED port
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, numLeds);
@@ -374,8 +191,7 @@ void loop()
 {
 
  // get Art-Net
- // RecieveUdp();
- artnet.parse(); // check if artnet packet has come and execute callback
+ recieveUdp();
 
  // torch animation + text display + cheerlight background
  EVERY_N_MILLISECONDS(cycle_wait)

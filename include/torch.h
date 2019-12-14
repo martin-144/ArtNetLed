@@ -1,7 +1,12 @@
-#ifndef torch.h
-#define torch.h
+#ifndef torch_h
+#define torch_h
 
+#include <FastLED.h>
 #include "stdint.h"
+
+// ArtNet Settings
+uint16_t artnet_levels;
+uint8_t  dmx_channel = 1;
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
@@ -34,6 +39,7 @@ const bool alternatingX = false;
 const bool swapXY = false;
 
 const uint16_t numLeds = ledsPerLevel*levels; // total number of LEDs
+CRGB leds[numLeds];
 
 // global parameters
 uint8_t currentEnergy[numLeds]; // current energy level
@@ -78,8 +84,7 @@ uint8_t blue_bg = 0;
 uint8_t red_bias = 20;
 uint8_t green_bias = 0;
 uint8_t blue_bias = 0;
-int red_energy =
-0;
+int red_energy = 0;
 int green_energy = 100;
 int blue_energy = 0;
 
@@ -104,4 +109,162 @@ void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax);
 void setColor(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue);
 void setColorDimmed(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aBrightness);
 
-#endif /* torch.h */
+void calcNextEnergy()
+{
+  int i = 0;
+  for (int y=0; y<levels; y++) {
+    for (int x=0; x<ledsPerLevel; x++) {
+      uint8_t e = currentEnergy[i];
+      uint8_t m = energyMode[i];
+      switch (m) {
+        case torch_spark: {
+          // loose transfer up energy as long as the is any
+          reduce(&e, spark_tfr, 0);
+          // cell above is temp spark, sucking up energy from this cell until empty
+          if (y<artnet_levels-1) {
+            energyMode[i+ledsPerLevel] = torch_spark_temp;
+          }
+          // 20191206 Martin has introduced this for dynamic level control
+          else if (y>artnet_levels-1) {
+            energyMode[i+ledsPerLevel] = torch_passive;
+          }
+          break;
+        }
+        case torch_spark_temp: {
+          // just getting some energy from below
+          uint8_t e2 = currentEnergy[i-ledsPerLevel];
+          if (e2<spark_tfr) {
+            // cell below is exhausted, becomes passive
+            energyMode[i-ledsPerLevel] = torch_passive;
+            // gobble up rest of energy
+            increase(&e, e2, 255);
+            // loose some overall energy
+            e = ((int)e*spark_cap)>>8;
+            // this cell becomes active spark
+            energyMode[i] = torch_spark;
+          }
+          else {
+            increase(&e, spark_tfr, 255);
+          }
+          break;
+        }
+        case torch_passive: {
+          e = ((int)e*heat_cap)>>8;
+          increase(&e, ((((int)currentEnergy[i-1]+(int)currentEnergy[i+1])*side_rad)>>9) + (((int)currentEnergy[i-ledsPerLevel]*up_rad)>>8), 255);
+        }
+        default:
+          break;
+      }
+      nextEnergy[i++] = e;
+    }
+  }
+}
+
+
+const uint8_t energymap[32] = {0, 64, 96, 112, 128, 144, 152, 160, 168, 176, 184, 184, 192, 200, 200, 208, 208, 216, 216, 224, 224, 224, 232, 232, 232, 240, 240, 240, 240, 248, 248, 248};
+
+void calcNextColors()
+{
+  for (int i=0; i<numLeds; i++) {
+      uint16_t e = nextEnergy[i];
+      currentEnergy[i] = e;
+  //    leds.setColorDimmed(i, 255, 170, 0, e);const __FlashStringHelper *
+      if (e>250)
+        setColorDimmed(leds, i, 170, 170, e, brightness);
+      else {
+        if (e>0) {
+          // energy to brightness is non-linear
+          uint8_t eb = energymap[e>>3];
+          uint8_t r = red_bias;
+          uint8_t g = green_bias;
+          uint8_t b = blue_bias;
+          increase(&r, (eb*red_energy)>>8, 255);
+          increase(&g, (eb*green_energy)>>8, 255);
+          increase(&b, (eb*blue_energy)>>8, 255);
+          setColorDimmed(leds , i, r, g, b, brightness);
+        }
+        else {
+          // background, no energy
+          setColorDimmed(leds, i, red_bg, green_bg, blue_bg, brightness);
+        }
+      }
+   }
+}
+
+
+void injectRandom()
+{
+  // random flame energy at bottom row
+  for (int i=0; i<ledsPerLevel; i++) {
+    currentEnergy[i] = torch_random(flame_min, flame_max);
+    energyMode[i] = torch_nop;
+  }
+  // random sparks at second row
+  for (int i=ledsPerLevel; i<2*ledsPerLevel; i++) {
+    if (energyMode[i]!=torch_spark && torch_random(100, 0)<random_spark_probability) {
+      currentEnergy[i] = torch_random(spark_min, spark_max);
+      energyMode[i] = torch_spark;
+    }
+  }
+}
+
+// Utilities
+// =========
+
+void resetEnergy()
+{
+  for (int i=0; i<numLeds; i++) {
+    currentEnergy[i] = 0;
+    nextEnergy[i] = 0;
+    energyMode[i] = torch_passive;
+  }
+}
+
+uint8_t torch_random(uint8_t aMinOrMax, uint8_t aMax)
+{
+  if (aMax==0)
+  {
+    aMax = aMinOrMax;
+    aMinOrMax = 0;
+  }
+  uint32_t r = aMinOrMax;
+  aMax = aMax - aMinOrMax + 1;
+  r += rand() % aMax;
+  return r;
+}
+
+
+void reduce(uint8_t *aByte, uint8_t aAmount, uint8_t aMin)
+{
+  int r = *aByte-aAmount;
+  if (r<aMin)
+    *aByte = aMin;
+  else
+    *aByte = (uint8_t)r;
+}
+
+
+void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax)
+{
+  int r = *aByte+aAmount;
+  if (r>aMax)
+    *aByte = aMax;
+  else
+   *aByte = (uint8_t)r;
+}
+
+void setColor(struct CRGB *leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue)
+{
+  if (aLedNumber>=numLeds) return; // invalid LED number
+  // linear brightness is stored with 5bit precision only
+  leds[aLedNumber].red = aRed;
+  leds[aLedNumber].green = aGreen;
+  leds[aLedNumber].blue = aBlue;
+}
+
+void setColorDimmed(struct CRGB *leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aBrightness)
+{
+  setColor(leds, aLedNumber, (aRed*aBrightness)>>8, (aGreen*aBrightness)>>8, (aBlue*aBrightness)>>8);
+}
+
+#endif /* torch_h */
