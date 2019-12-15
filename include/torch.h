@@ -2,6 +2,7 @@
 #define torch_h
 
 #include <FastLED.h>
+#include <inttypes.h>
 #include "stdint.h"
 
 // ArtNet Settings
@@ -53,12 +54,12 @@ enum {
   torch_spark_temp = 3, // a spark still getting energy from the level below
 };
 
-enum {
+enum { // moving lamp mode params
   mode_off = 0,
   mode_torch = 1, // torch
-  mode_colorcycle = 2, // moving color cycle
-  mode_lamp = 3, // lamp
-};
+  mode_colorcycle = 2,
+  mode_lamp = 3 // lamp
+  };
 
 // torch parameters
 
@@ -75,34 +76,29 @@ uint8_t spark_tfr = 40; // 0..256 how much energy is transferred up for a spark 
 uint16_t spark_cap = 200; // 0..255: spark cells: how much energy is retained from previous cycle
 
 uint16_t up_rad = 35; // up radiation
-uint16_t side_rad = 35; // sidewards radiation
+uint16_t side_rad = 35; // sidewards radiationc//
 uint16_t heat_cap = 0; // 0..255: passive cells: how much energy is retained from previous cycle
 
-uint8_t red_bg = 1;
+uint8_t red_bg = 0;
 uint8_t green_bg = 0;
 uint8_t blue_bg = 0;
 uint8_t red_bias = 20;
 uint8_t green_bias = 0;
 uint8_t blue_bias = 0;
-int red_energy = 0;
-int green_energy = 100;
+int red_energy = 255;
+int green_energy = 145;
 int blue_energy = 0;
 
-
-// lamp mode params
-
-uint8_t lamp_red = 220;
-uint8_t lamp_green = 220;
-uint8_t lamp_blue = 200;
-
-uint8_t mode = mode_torch; // main operation mode
 int brightness = 255; // overall brightness
 uint8_t fade_base = 140; // crossfading base brightness level
 
 // void torch(struct led *ws2812_framebuffer);
 void calcNextEnergy();
 void calcNextColors();
-void injectRandom();
+void injectRandom();// lamp mode params
+uint8_t lamp_red = 220;
+uint8_t lamp_green = 0;
+uint8_t lamp_blue = 200;
 uint8_t torch_random(uint8_t aMinOrMax, uint8_t aMax);
 void reduce(uint8_t *aByte, uint8_t aAmount, uint8_t aMin);
 void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax);
@@ -124,7 +120,7 @@ void calcNextEnergy()
           if (y<artnet_levels-1) {
             energyMode[i+ledsPerLevel] = torch_spark_temp;
           }
-          // 20191206 Martin has introduced this for dynamic level control
+          // 20191206      // Udp.beginPacketMulticast(WiFi.localIP(), multicastAddress, multicastPort); Martin has introduced this for dynamic level control
           else if (y>artnet_levels-1) {
             energyMode[i+ledsPerLevel] = torch_passive;
           }

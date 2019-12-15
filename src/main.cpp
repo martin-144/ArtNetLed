@@ -3,33 +3,17 @@
 
 #include <FastLED.h>
 #include <ESP8266WiFi.h>
+#include <artnet.h>
 #include <WiFiUdp.h>
 #include <torch.h>
 #include <wifi.h>
 #include <string>
 
-
-// ARTNET CODES
-struct artnet_t {
-  const uint8_t data = 0x50;
-  const uint8_t poll = 0x20;
-  const uint8_t poll_reply = 0x21;
-  const uint8_t header_size = 17;
-} artnet;
-
-
-/* replaced by above
-const uint8_t artnet_data = 0x50;
-const uint8_t artnet_poll = 0x20;
-const uint8_t artnet_poll_reply = 0x21;
-const uint8_t artnet_header = 17;
-*/
+struct art_poll_reply_s ArtPollReply;
 
 // UDP settings
 // const uint16_t udp_port = 6454;
 WiFiUDP Udp;
-
-
 
 // Local fastLed Ports
 #define LED_PIN D8
@@ -47,7 +31,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
   byte packet[18 + (numLeds * 3)];
-  byte header[artnet.header_size];
+  byte header[ART_DMX_START];
 
   int packetSize = Udp.parsePacket();
 
@@ -59,76 +43,109 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
 
     // Read Artnet Header
-    int len = Udp.read(header, artnet.header_size + 1);
+    int len = Udp.read(header, ART_DMX_START);
 
     // Test for empty packet, if empty return
     if(len < 1)
       return;
 
-    Serial.printf("%s\n", header); // For Debug
+    Udp.flush();
 
     if (header[9] == 0x20) // ArtNet OpPoll received
     {
-      Serial.printf("ArtNet OpPoll received\n");
-      Serial.println(Udp.remoteIP());
+      Serial.printf("ArtNet OpPoll received from ");
+      Serial.print(Udp.remoteIP());
+      Serial.printf(" Port ");
       Serial.println(Udp.remotePort());
 
-      Udp.beginPacket(broadcastIP, Udp.remotePort());
-      // Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-      Udp.print("Art-Net"); // + ... to be continued
+      IPAddress local_ip = WiFi.localIP();
+
+      node_ip_address[0] = local_ip[0];
+      node_ip_address[1] = local_ip[1];
+      node_ip_address[2] = local_ip[2];
+      node_ip_address[3] = local_ip[3];
+
+      sprintf((char *)id, "Art-Net");
+      memcpy(ArtPollReply.id, id, sizeof(ArtPollReply.id));
+      memcpy(ArtPollReply.ip, node_ip_address, sizeof(ArtPollReply.ip));
+
+      ArtPollReply.opCode = ART_POLL_REPLY;
+      ArtPollReply.port =  ART_NET_PORT;
+
+      memset(ArtPollReply.goodinput,  0x08, 4);
+      memset(ArtPollReply.goodoutput,  0x80, 4);
+      memset(ArtPollReply.porttypes, 0x00, 4);
+      memset(ArtPollReply.porttypes, 0xc0, 1);
+
+      uint8_t shortname [18] = {0};
+      uint8_t longname [64] = {0};
+      sprintf((char *)shortname, "Torch");
+      sprintf((char *)longname, "Art-Net -> Arduino Bridge");
+      memcpy(ArtPollReply.shortname, shortname, sizeof(shortname));
+      memcpy(ArtPollReply.longname, longname, sizeof(longname));
+
+      ArtPollReply.estaman[0] = 0;
+      ArtPollReply.estaman[1] = 0;
+      ArtPollReply.verH       = 1;
+      ArtPollReply.ver        = 0;
+      ArtPollReply.subH       = 0;
+      ArtPollReply.sub        = 0;
+      ArtPollReply.oemH       = 0;
+      ArtPollReply.oem        = 0xFF;
+      ArtPollReply.ubea       = 0;
+      ArtPollReply.status     = 0xd0;
+      ArtPollReply.swvideo    = 0;
+      ArtPollReply.swmacro    = 0;
+      ArtPollReply.swremote   = 0;
+      ArtPollReply.style      = 0;
+
+      ArtPollReply.numportsH = 0;
+      ArtPollReply.numportsL = 4;
+      ArtPollReply.status2   = 0x08;
+
+      ArtPollReply.bindip[0] = node_ip_address[0];
+      ArtPollReply.bindip[1] = node_ip_address[1];
+      ArtPollReply.bindip[2] = node_ip_address[2];
+      ArtPollReply.bindip[3] = node_ip_address[3];
+
+      uint8_t swin[4]  = {0x01,0x02,0x03,0x04};
+      uint8_t swout[4] = {0x01,0x02,0x03,0x04};
+
+      for(uint8_t i = 0; i < 4; i++)
+      {
+          ArtPollReply.swout[i] = swout[i];
+          ArtPollReply.swin[i] = swin[i];
+      }
+
+      sprintf((char *)ArtPollReply.nodereport, "%i DMX output universes active.", ArtPollReply.numportsL);
+
+      Serial.println("Sending ArtNet OpPollReply Packet...");
+
+      Udp.beginPacket(broadcast, ART_NET_PORT); //send ArtNet OpPollReply
+      Udp.write((uint8_t *)&ArtPollReply, sizeof(ArtPollReply));
       Udp.endPacket();
     }
 
-    if (header[9] == 0x50) // ArtNet Data received
+    // test for Art-Net DMX packet
+	  // (packet[14] & packet[15] are the low and high bytes for universe
+    if(header[9] == 0x50)
     {
-      Serial.printf("ArtNet Net data received, Universe %d\n", header[15]);
-    }
+      Serial.printf("ArtNet data received, Universe %d\n", header[14]);
 
-    /*
-    Serial.printf("%s\n", header); // For Debug
-    Serial.printf("0x%x, ", header[8]);
-    Serial.printf("0x%x, ", header[9]);IPAddress broadcastIp(255,255,255,255);
-    Serial.printf("0x%x\n", hUdp.remoteIP()eader[15]);
-    */
-
-    // Read-in packet and get length
-    Udp.read(packet, 8);
-    Serial.printf("%x\n", packet); // For Debug
-
-    //discard unread bytes
-    Udp.flush();
-
-    //test for empty packet
-    if(len < 1)
-      return;
-
-    digitalWrite(ledPin, 1);  // Unlight LED
-
-    //test for Art-Net DMX packet
-	  //(packet[14] & packet[15] are the low and high bytes for universe
-    if(packet[9] == 0x50)
-    {
-      // Udp.beginPacketMulticast(WiFi.localIP(), multicastAddress, multicastPort);
-      int dmx = 18 + dmx_channel - 1;
-      /*
-      for(int n = 0; n < numLeds; n++)
-      {
-        leds[n] = CRGB(packet[dmx++], packet[dmx++], packet[dmx++]);
-      }
-      */
+      Udp.read(packet, 32);
+      // Serial.printf("%s\n", packet); // For Debug
+      int dmx = 0; //ART_DMX_START + dmx_channel - 1;
 
       brightness = packet[dmx];
       artnet_levels = packet[dmx+1] * levels / 256;
+
+      Serial.printf("Brightness: %d, Level: %d\n", brightness, artnet_levels);
 
       // Torch completely off when artnet_levels < 1
       if (artnet_levels < 1)
          brightness = 0;
 
-
-      // Serial.write(artnet_levels);
-
-      //push led data - moved to loop() after ReceiveUDP()
-      //FastLED.show();
+      digitalWrite(ledPin, 1);  // Unlight LED
     }
   }
 }
@@ -140,7 +157,7 @@ void setup()
 {
   // start serial port
   Serial.begin(115200);
-  delay(2000);IPAddress broadcastIp(255,255,255,255);
+  delay(2000);
   Serial.print("Serial Starting...\n");
 
   // set LED port
@@ -165,7 +182,6 @@ void setup()
     }
   }
 
-  delay(1000);
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
@@ -175,7 +191,7 @@ void setup()
   digitalWrite(ledPin, 1);
 
   // set up UDP receiver
-  Udp.begin(6454);
+  Udp.begin(ART_NET_PORT);
 
   // start LED port
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, numLeds);
@@ -189,7 +205,6 @@ void setup()
 
 void loop()
 {
-
  // get Art-Net
  recieveUdp();
 
