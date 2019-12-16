@@ -27,6 +27,7 @@ uint16_t dmxDataLength;
 IPAddress remoteIP;
 uint8_t  node_ip_address[4];
 uint8_t  id[8];
+uint8_t numports = 1;
 
 struct art_poll_reply_s {
   uint8_t  id[8];

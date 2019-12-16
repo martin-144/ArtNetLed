@@ -72,9 +72,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       ArtPollReply.opCode = ART_POLL_REPLY;
       ArtPollReply.port =  ART_NET_PORT;
 
-      memset(ArtPollReply.goodinput,  0x08, 4);
-      memset(ArtPollReply.goodoutput,  0x80, 4);
-      memset(ArtPollReply.porttypes, 0x00, 4);
+      memset(ArtPollReply.goodinput,  0x08, numports);
+      memset(ArtPollReply.goodoutput,  0x80, numports);
+      memset(ArtPollReply.porttypes, 0x00, 1);
       memset(ArtPollReply.porttypes, 0xc0, 1);
 
       uint8_t shortname [18] = {0};
@@ -99,8 +99,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       ArtPollReply.swremote   = 0;
       ArtPollReply.style      = 0;
 
-      ArtPollReply.numportsH = 0;
-      ArtPollReply.numportsL = 4;
+      ArtPollReply.numportsH = (numports >> 8) & 0xff ;
+      ArtPollReply.numportsL = numports & 0xff;
       ArtPollReply.status2   = 0x08;
 
       ArtPollReply.bindip[0] = node_ip_address[0];
@@ -111,13 +111,13 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       uint8_t swin[4]  = {0x01,0x02,0x03,0x04};
       uint8_t swout[4] = {0x01,0x02,0x03,0x04};
 
-      for(uint8_t i = 0; i < 4; i++)
+      for(uint8_t i = 0; i < numports; i++)
       {
           ArtPollReply.swout[i] = swout[i];
           ArtPollReply.swin[i] = swin[i];
       }
 
-      sprintf((char *)ArtPollReply.nodereport, "%i DMX output universes active.", ArtPollReply.numportsL);
+      sprintf((char *)ArtPollReply.nodereport, "%i DMX output universes active.", numports);
 
       Serial.println("Sending ArtNet OpPollReply Packet...");
 
