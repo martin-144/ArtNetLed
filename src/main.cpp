@@ -30,8 +30,7 @@ Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
-  byte packet[18 + (numLeds * 3)];
-  byte header[ART_DMX_START];
+  byte header[ART_DMX_START]; // Buffer for Artnet Header
 
   int packetSize = Udp.parsePacket();
 
@@ -72,8 +71,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       ArtPollReply.opCode = ART_POLL_REPLY;
       ArtPollReply.port =  ART_NET_PORT;
 
-      memset(ArtPollReply.goodinput,  0x08, numports);
-      memset(ArtPollReply.goodoutput,  0x80, numports);
+      memset(ArtPollReply.goodinput, 0x08, numports);
+      memset(ArtPollReply.goodoutput, 0x80, numports);
       memset(ArtPollReply.porttypes, 0x00, 1);
       memset(ArtPollReply.porttypes, 0xc0, 1);
 
@@ -99,7 +98,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       ArtPollReply.swremote   = 0;
       ArtPollReply.style      = 0;
 
-      ArtPollReply.numportsH = (numports >> 8) & 0xff ;
+      ArtPollReply.numportsH = (numports >> 8) & 0xff;
       ArtPollReply.numportsL = numports & 0xff;
       ArtPollReply.status2   = 0x08;
 
@@ -117,7 +116,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
           ArtPollReply.swin[i] = swin[i];
       }
 
-      sprintf((char *)ArtPollReply.nodereport, "%i DMX output universes active.", numports);
+      sprintf((char *)ArtPollReply.nodereport, "%d DMX output universes active.", numports);
 
       Serial.println("Sending ArtNet OpPollReply Packet...");
 
@@ -131,6 +130,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     if(header[9] == 0x50)
     {
       Serial.printf("ArtNet data received, Universe %d\n", header[14]);
+      byte packet[32];
 
       Udp.read(packet, 32);
       // Serial.printf("%s\n", packet); // For Debug

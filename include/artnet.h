@@ -25,8 +25,8 @@ uint8_t sequence;
 uint16_t incomingUniverse;
 uint16_t dmxDataLength;
 IPAddress remoteIP;
-uint8_t  node_ip_address[4];
-uint8_t  id[8];
+uint8_t node_ip_address[4];
+uint8_t id[8];
 uint8_t numports = 1;
 
 struct art_poll_reply_s {
@@ -46,13 +46,13 @@ struct art_poll_reply_s {
   uint8_t  shortname[18];
   uint8_t  longname[64];
   uint8_t  nodereport[64];
-  uint8_t  numportsH;
   uint8_t  numportsL;
+  uint8_t  numportsH;
   uint8_t  porttypes[4]; //max of 4 ports per node
-  uint8_t  goodinput[4];
-  uint8_t  goodoutput[4];
-  uint8_t  swin[4];
-  uint8_t  swout[4];
+  uint8_t  goodinput[4] = {0};
+  uint8_t  goodoutput[4] = {0};
+  uint8_t  swin[4] = {0};
+  uint8_t  swout[4] = {0};
   uint8_t  swvideo;
   uint8_t  swmacro;
   uint8_t  swremote;

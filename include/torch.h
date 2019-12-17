@@ -81,7 +81,7 @@ uint16_t heat_cap = 0; // 0..255: passive cells: how much energy is retained fro
 
 uint8_t red_bg = 0;
 uint8_t green_bg = 0;
-uint8_t blue_bg = 10;
+uint8_t blue_bg = 0;
 uint8_t red_bias = 20;
 uint8_t green_bias = 0;
 uint8_t blue_bias = 0;
