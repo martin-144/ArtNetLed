@@ -48,8 +48,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     if(len < 1)
       return;
 
-    Udp.flush();
-
     if (header[9] == 0x20) // ArtNet OpPoll received
     {
       Serial.printf("ArtNet OpPoll received from ");
@@ -78,7 +76,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       uint8_t shortname [18] = {0};
       uint8_t longname [64] = {0};
-      sprintf((char *)shortname, "Torch");
+      sprintf((char *)shortname, "ArtNet Torch");
       sprintf((char *)longname, "Art-Net -> Arduino Bridge");
       memcpy(ArtPollReply.shortname, shortname, sizeof(shortname));
       memcpy(ArtPollReply.longname, longname, sizeof(longname));
@@ -98,8 +96,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       ArtPollReply.swremote   = 0;
       ArtPollReply.style      = 0;
 
-      ArtPollReply.numportsH = (numports >> 8) & 0xff;
-      ArtPollReply.numportsL = numports & 0xff;
+      ArtPollReply.numports[1] = (numports >> 8) & 0xff;
+      ArtPollReply.numports[0] = numports & 0xff;
       ArtPollReply.status2   = 0x08;
 
       ArtPollReply.bindip[0] = node_ip_address[0];
@@ -130,7 +128,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     if(header[9] == 0x50)
     {
       Serial.printf("ArtNet data received, Universe %d\n", header[14]);
-      byte packet[32];
+      byte packet[32]; // Buffer for Artnet Packet
 
       Udp.read(packet, 32);
       // Serial.printf("%s\n", packet); // For Debug

@@ -120,7 +120,7 @@ void calcNextEnergy()
           if (y<artnet_levels-1) {
             energyMode[i+ledsPerLevel] = torch_spark_temp;
           }
-          // 20191206      // Udp.beginPacketMulticast(WiFi.localIP(), multicastAddress, multicastPort); Martin has introduced this for dynamic level control
+          // 20191206 by Martin; If artnetlevels < ledsPerLevel set LEDs above off
           else if (y>artnet_levels-1) {
             energyMode[i+ledsPerLevel] = torch_passive;
           }

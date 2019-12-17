@@ -46,8 +46,7 @@ struct art_poll_reply_s {
   uint8_t  shortname[18];
   uint8_t  longname[64];
   uint8_t  nodereport[64];
-  uint8_t  numportsL;
-  uint8_t  numportsH;
+  uint8_t  numports[2];
   uint8_t  porttypes[4]; //max of 4 ports per node
   uint8_t  goodinput[4] = {0};
   uint8_t  goodoutput[4] = {0};
