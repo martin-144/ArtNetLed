@@ -137,7 +137,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       brightness = packet[dmx];
       artnet_levels = packet[dmx+1] * levels / 256;
 
-      Serial.printf("Brightness: %d, Level: %d\n", brightness, artnet_levels);
+      Serial.printf("Brightness: %d, DMX Level: %d, Torch Level: %d\n", brightness, packet[dmx+1], artnet_levels);
 
       // Torch completely off when artnet_levels < 1
       if (artnet_levels < 1)
