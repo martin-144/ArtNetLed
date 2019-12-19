@@ -21,6 +21,8 @@ uint8_t artnetPacket[MAX_BUFFER_ARTNET];
 uint16_t packetSize;
 IPAddress broadcast = {0xff, 0xff, 0xff, 0xff};
 uint16_t opcode;
+uint16_t universe;
+uint16_t dmxLength;
 uint8_t sequence;
 uint16_t incomingUniverse;
 uint16_t dmxDataLength;

@@ -42,13 +42,24 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
 
     // Read Artnet Header
-    int len = Udp.read(header, ART_DMX_START);
+    int len = Udp.read(artnetPacket, MAX_BUFFER_ARTNET);
 
     // Test for empty packet, if empty return
     if(len < 1)
       return;
 
-    if (header[9] == 0x20) // ArtNet OpPoll received
+    // Check that packetID is "Art-Net" else ignore
+    for (byte i = 0 ; i < 8 ; i++)
+    {
+      if (artnetPacket[i] != ART_NET_ID[i])
+        return;
+    }
+
+    opcode = artnetPacket[8] | artnetPacket[9] << 8;
+    universe = artnetPacket[14] | artnetPacket[15] << 8;
+    dmxLength = artnetPacket[17] | artnetPacket[16] << 8;
+
+    if (opcode == ART_POLL) // ArtNet OpPoll received
     {
       Serial.printf("ArtNet OpPoll received from ");
       Serial.print(Udp.remoteIP());
@@ -123,21 +134,14 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       Udp.endPacket();
     }
 
-    // test for Art-Net DMX packet
-	  // (packet[14] & packet[15] are the low and high bytes for universe
-    if(header[9] == 0x50)
+
+    if(opcode == ART_DMX) // Test for Art-Net DMX packet
     {
-      Serial.printf("ArtNet data received, Universe %d\n", header[14]);
-      byte packet[32]; // Buffer for Artnet Packet
+      Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", universe, dmxLength);
+      brightness = artnetPacket[ART_DMX_START];
+      artnet_levels = artnetPacket[ART_DMX_START+1] * levels / 256;
 
-      Udp.read(packet, 32);
-      // Serial.printf("%s\n", packet); // For Debug
-      int dmx = 0; //ART_DMX_START + dmx_channel - 1;
-
-      brightness = packet[dmx];
-      artnet_levels = packet[dmx+1] * levels / 256;
-
-      Serial.printf("Brightness: %d, DMX Level: %d, Torch Level: %d\n", brightness, packet[dmx+1], artnet_levels);
+      Serial.printf("Brightness: %d, Torch Level: %d\n", brightness, artnet_levels);
 
       // Torch completely off when artnet_levels < 1
       if (artnet_levels < 1)
