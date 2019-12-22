@@ -6,8 +6,9 @@
 #include "stdint.h"
 
 // ArtNet Settings
-uint16_t artnet_levels;
-uint8_t  dmx_channel = 1;
+uint8_t artnet_levels;
+uint8_t artnet_levels_raw;
+uint8_t dmx_channel = 1;
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
@@ -25,19 +26,24 @@ const uint16_t levels = 28;
 // set to true if you wound the torch clockwise (as seen from top). Note that
 // this reverses the entire animation (in contrast to mirrorText, which only
 // mirrors text).
-const bool reversedX = false;
+const bool reversedX = true;
 
 // set to true if you wound the torch from top down
-const bool reversedY = false;
+const bool reversedY = true;
 
 // set to true if every other row in the LED matrix is ordered backwards.
 // This mode is useful for WS2812 modules which have e.g. 16x16 LEDs on one
 // flexible PCB. On these modules, the data line starts in the lower left
 // corner, goes right for row 0, then left in row 1, right in row 2 etc.
 const bool alternatingX = false;
+
 // set to true if your WS2812 chain runs up (or up/down, with alternatingX set) the "torch",
 // for example if you want to do a wide display out of multiple 16x16 arrays
 const bool swapXY = false;
+
+// const bool xReversed = false; // even (0,2,4...) rows go backwards, or all if not alternating
+// const bool yReversed = false; // Y reversed
+// const bool alternating = false; // direction changes after every row
 
 const uint16_t numLeds = ledsPerLevel*levels; // total number of LEDs
 CRGB leds[numLeds];
@@ -89,7 +95,7 @@ int red_energy = 255;
 int green_energy = 145;
 int blue_energy = 0;
 
-int brightness = 255; // overall brightness
+uint8_t brightness = 255; // overall brightness
 uint8_t fade_base = 140; // crossfading base brightness level
 
 // void torch(struct led *ws2812_framebuffer);
@@ -164,7 +170,7 @@ void calcNextColors()
   for (int i=0; i<numLeds; i++) {
       uint16_t e = nextEnergy[i];
       currentEnergy[i] = e;
-  //    leds.setColorDimmed(i, 255, 170, 0, e);const __FlashStringHelper *
+
       if (e>250)
         setColorDimmed(leds, i, 170, 170, e, brightness);
       else {
