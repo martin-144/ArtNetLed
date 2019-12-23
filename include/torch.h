@@ -6,22 +6,25 @@
 #include "stdint.h"
 
 // ArtNet Settings
-uint8_t artnet_levels;
-uint8_t artnet_levels_raw;
-uint8_t dmx_channel = 1;
+uint8_t artnetLevels;
+uint8_t artnetLevelsRaw;
+uint8_t dmxChannel = 1;
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
 // Higher number = diameter of the torch gets larger
 // Ast 8
 // Lamp 14
-const uint16_t ledsPerLevel = 14;
+const uint8_t ledsPerLevel = 14;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint16_t levels = 28;
+const uint8_t levels = 28;
+
+// Dim the flame when going below this number of levels
+const uint8_t dimmingLevel = 4;
 
 // set to true if you wound the torch clockwise (as seen from top). Note that
 // this reverses the entire animation (in contrast to mirrorText, which only
@@ -123,11 +126,11 @@ void calcNextEnergy()
           // loose transfer up energy as long as the is any
           reduce(&e, spark_tfr, 0);
           // cell above is temp spark, sucking up energy from this cell until empty
-          if (y<artnet_levels-1) {
+          if (y<artnetLevels-1) {
             energyMode[i+ledsPerLevel] = torch_spark_temp;
           }
           // 20191206 by Martin; If artnetlevels < ledsPerLevel set LEDs above off
-          else if (y>artnet_levels-1) {
+          else if (y>artnetLevels-1) {
             energyMode[i+ledsPerLevel] = torch_passive;
           }
           break;

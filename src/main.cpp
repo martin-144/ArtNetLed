@@ -137,20 +137,18 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     {
       // Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", universe, dmxLength);
       brightness = artnetPacket[ART_DMX_START];
-      artnet_levels_raw = artnetPacket[ART_DMX_START+1];
-      artnet_levels = artnet_levels_raw * levels / 255;
+      artnetLevelsRaw = artnetPacket[ART_DMX_START+1];
+      artnetLevels = artnetLevelsRaw * levels / 255;
 
-      uint8_t dimmingLevel = 8;
-
-      // Torch dim when <= artnet_levels
-      if (artnet_levels <= dimmingLevel + 1)
+      // Dim Torch when <= artnet_levels
+      if (artnetLevels <= dimmingLevel)
       {
       // Serial.printf("levels = %d, dimming_level = %d\n", levels, dimming_level);
       // Serial.printf("Dimming Level = %d\n", map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255));
-      brightness = brightness + map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255) + 1;
+      brightness = map(artnetLevelsRaw, 0, ledsPerLevel * dimmingLevel, 0, brightness);
       }
 
-      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", brightness, artnet_levels, artnet_levels_raw);
+      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", brightness, artnetLevels, artnetLevelsRaw);
       digitalWrite(ledPin, 1);  // Unlight LED
     }
   }
