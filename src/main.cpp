@@ -1,13 +1,19 @@
 #define FASTLED_ALLOW_INTERRUPTS 0
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 
+#include <FS.h>
 #include <FastLED.h>
 #include <ESP8266WiFi.h>
-#include <artnet.h>
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson
 #include <WiFiUdp.h>
+#include <artnet.h>
 #include <torch.h>
 #include <wifi.h>
 #include <string>
+
 
 struct art_poll_reply_s ArtPollReply;
 
@@ -22,7 +28,24 @@ WiFiUDP Udp;
 const int interval = 500;
 const int ledPin = 0x02;
 
+// Flash button
+const int flashButtonPin = 0x00;
+
 IPAddress broadcastIp(255 ,255 ,255 ,255);
+
+// WiFiManager related Stuff
+String WiFiUniverse;
+String WiFiDmxChannel;
+
+// flag for saving data
+bool shouldSaveConfig = false;
+
+//callback notifying us of the need to save config
+void saveConfigCallback () {
+  Serial.println("Should save config");
+  shouldSaveConfig = true;
+}
+
 
 void recieveUdp()
 /*
@@ -62,7 +85,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     {
       Serial.printf("ArtNet OpPoll received from ");
       Serial.print(Udp.remoteIP());
-      Serial.printf(" Port ");
+      Serial.printf(":");
       Serial.println(Udp.remotePort());
 
       IPAddress local_ip = WiFi.localIP();
@@ -135,7 +158,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     if(opcode == ART_DMX) // Test for Art-Net DMX packet
     {
-      // Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", universe, dmxLength);
+      Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", universe, dmxLength);
+
       brightness = artnetPacket[ART_DMX_START];
       artnetLevelsRaw = artnetPacket[ART_DMX_START+1];
       artnetLevels = artnetLevelsRaw * levels / 255;
@@ -145,7 +169,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       {
       // Serial.printf("levels = %d, dimming_level = %d\n", levels, dimming_level);
       // Serial.printf("Dimming Level = %d\n", map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255));
-      brightness = map(artnetLevelsRaw, 0, ledsPerLevel * dimmingLevel, 0, brightness);
+      brightness = map(artnetLevelsRaw, 0, 60, 0, brightness);
       }
 
       Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", brightness, artnetLevels, artnetLevelsRaw);
@@ -164,41 +188,119 @@ void setup()
   delay(2000);
   Serial.print("Serial Starting...\n");
 
+  // set Flash button Port
+  pinMode(flashButtonPin, INPUT);
+
   // set LED port
   pinMode(ledPin, OUTPUT);
 
   // LED on while connecting to WLAN
   digitalWrite(ledPin, 0);
 
-  // connect to WiFi network
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_STA);
-  // WiFi.config(ip, gateway, subnet);
+  Serial.println("mounting FS...");
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    for (uint8_t i=0; i < sizeof(wifi_ssid)/sizeof(wifi_ssid)[0]; i++)
-    {
-    // connect to WiFi network
-    Serial.printf("Trying to connect to %s, Password %s\n", wifi_ssid[i], wifi_pass[i]);
-    WiFi.begin(wifi_ssid[i], wifi_pass[i]);
-    delay(4000);
+  if (SPIFFS.begin()) {
+    Serial.println("mounted file system");
+    if (SPIFFS.exists("/config.json")) {
+      //file exists, reading and loading
+      Serial.println("reading config file");
+      File configFile = SPIFFS.open("/config.json", "r");
+      if (configFile) {
+        Serial.println("opened config file");
+        // size_t size = configFile.size();
+
+        Serial.printf("Size: %d\n", configFile.size());
+        // Allocate a buffer to store contents of the file.
+        // std::unique_ptr<char[]> buf(new char[size]);
+
+        // configFile.readBytes(buf.get(), size);
+        DynamicJsonDocument doc(1024);
+        DeserializationError error = deserializeJson(doc, configFile);
+        if (!error)
+        {
+          WiFiDmxChannel = doc["dmxchannel"].as<String>();
+          WiFiUniverse = doc["universe"].as<String>();
+          // strcpy(WiFiDmxChannel, doc["dmxchannel"]);
+          Serial.println("Parsed json:\n");
+          Serial.printf("Universe: %s\n", WiFiUniverse.c_str());
+          Serial.printf("DMX Channel: %s\n", WiFiDmxChannel.c_str());
+          // strcpy(output, configFile["value"]);
+        }
+        else
+        {
+          Serial.println("Failed to load json config:\n");
+          Serial.println(error.c_str());
+          return;
+        }
+      }
     }
+  } else {
+    Serial.println("failed to mount FS");
   }
+  //end read
 
-  Serial.print("Connected to: ");
-  Serial.println(WiFi.SSID());
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  // WiFiManagler local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wifiManager;
+  // reset saved settings
+  // wifiManager.resetSettings();
+
+  // flag for saving data
+  wifiManager.setSaveConfigCallback(saveConfigCallback);
+
+  // wifiManager.setCustomHeadElement("<style>html{filter: invert(100%); -webkit-filter: invert(100%);}</style>");
+  // wifiManager.setCustomHeadElement("<form action=\"/artnet\" method=\"get\"><button>Configure ArtNet</button></form>");
+  // wifiManager.setCustomHeadElement("<style>body{background: #f7f5f5;}button{transition: 0.3s;opacity: 0.8;cursor: pointer;border:0;border-radius:1rem;background-color:#1dca79;color:#fff;line-height:2.4rem;font-size:1.2rem;width:100%;}button:hover {opacity: 1}button[type=\"submit\"]{margin-top: 15px;margin-bottom: 10px;font-weight: bold;text-transform: capitalize;}input{height: 30px;font-family:verdana;margin-top: 5px;background-color: rgb(253, 253, 253);border: 0px;-webkit-box-shadow: 2px 2px 5px 0px rgba(0,0,0,0.75);-moz-box-shadow: 2px 2px 5px 0px rgba(0,0,0,0.75);box-shadow: 2px 2px 5px 0px rgba(0,0,0,0.75);}div{color: #14a762;}div a{text-decoration: none;color: #14a762;}div[style*=\"text-align:left;\"]{color: black;}, div[class*=\"c\"]{border: 0px;}a[href*=\"wifi\"]{border: 2px solid #1dca79;text-decoration: none;color: #1dca79;padding: 10px 30px 10px 30px;font-family: verdana;font-weight: bolder;transition: 0.3s;border-radius: 5rem;}a[href*=\"wifi\"]:hover{background: #1dca79;color: white;}</style>");
+
+  WiFiManagerParameter custom_text("<p><h3>ArtNet Parameters</h3></p>");
+  wifiManager.addParameter(&custom_text);
+
+  // Adding an additional config on the WIFI manager webpage for the API Key and Channel ID
+  WiFiManagerParameter customUniverse("universe", "Universe", WiFiUniverse.c_str(), 3);
+  WiFiManagerParameter customDmxChannel("dmxchannel", "DMX Channel", WiFiDmxChannel.c_str(), 3);
+  wifiManager.addParameter(&customUniverse);
+  wifiManager.addParameter(&customDmxChannel);
+
+    // set custom ip for portal
+  // wifiManager.setAPStaticIPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0));
+
+  // fetches ssid and pass from eeprom and tries to connect
+  // if it does not connect it starts an access point with the specified name, here  "AutoConnectAP"
+  // and goes into a blocking loop awaiting configuration
+  // wifiManager.autoConnect("AutoConnectAP");
+  wifiManager.startConfigPortal("OnDemandAP");
+
+  WiFiUniverse = customUniverse.getValue();
+  WiFiDmxChannel = customDmxChannel.getValue();
+
+  if(shouldSaveConfig == true)
+  {
+    DynamicJsonDocument doc(1024);
+    doc["universe"] = WiFiUniverse.c_str();
+    doc["dmxchannel"] = WiFiDmxChannel.c_str();
+
+    File configFile = SPIFFS.open("/config.json", "w");
+    if (!configFile)
+    {
+      Serial.println("Failed to open config file for writing\n");
+    }
+    else
+    {
+      Serial.println("Writing to config file:\n");
+      serializeJson(doc, Serial);
+      serializeJson(doc, configFile);
+    }
+
+    configFile.close();
+  }
 
   // LED off after connecting to WLAN
   digitalWrite(ledPin, 1);
 
+  // start FastLED port
+  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, numLeds);
+
   // set up UDP receiver
   Udp.begin(ART_NET_PORT);
-
-  // start LED port
-  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, numLeds);
 
   // setup Torch
   resetEnergy();
@@ -212,7 +314,7 @@ void loop()
  // get Art-Net
  recieveUdp();
 
- // torch animation + text display + cheerlight background
+ // prepare Torch animation
  EVERY_N_MILLISECONDS(cycle_wait)
  {
  injectRandom();
@@ -222,6 +324,13 @@ void loop()
 
  // display on WS2812
  FastLED.show();
+
+ if (!digitalRead(flashButtonPin)==HIGH)
+ {
+    Serial.println("Flash Button Pressed\n");
+    WiFiManager wifiManager;
+    wifiManager.startConfigPortal("OnDemandAP");
+ }
 
  EVERY_N_MILLISECONDS(2000)
  {

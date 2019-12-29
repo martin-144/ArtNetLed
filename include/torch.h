@@ -15,13 +15,13 @@ uint8_t dmxChannel = 1;
 // Higher number = diameter of the torch gets larger
 // Ast 8
 // Lamp 14
-const uint8_t ledsPerLevel = 14;
+const uint8_t ledsPerLevel = 8;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint8_t levels = 28;
+const uint8_t levels = 21;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;
@@ -91,11 +91,11 @@ uint16_t heat_cap = 0; // 0..255: passive cells: how much energy is retained fro
 uint8_t red_bg = 0;
 uint8_t green_bg = 0;
 uint8_t blue_bg = 0;
-uint8_t red_bias = 20;
+uint8_t red_bias = 50;
 uint8_t green_bias = 0;
 uint8_t blue_bias = 0;
 int red_energy = 255;
-int green_energy = 145;
+int green_energy = 65;
 int blue_energy = 0;
 
 uint8_t brightness = 255; // overall brightness
@@ -111,7 +111,10 @@ uint8_t lamp_blue = 200;
 uint8_t torch_random(uint8_t aMinOrMax, uint8_t aMax);
 void reduce(uint8_t *aByte, uint8_t aAmount, uint8_t aMin);
 void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax);
+void setColorXY(uint16_t aX, uint16_t aY, byte aRed, byte aGreen, byte aBlue);
 void setColor(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue);
+
+void setColorDimmedXY(uint16_t aX, uint16_t aY, byte aRed, byte aGreen, byte aBlue, byte aBrightness);
 void setColorDimmed(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aBrightness);
 
 void calcNextEnergy()
@@ -216,6 +219,23 @@ void injectRandom()
 // Utilities
 // =========
 
+int getNumPixels()
+{
+  return numLeds;
+}
+
+
+uint16_t getSizeX()
+{
+  return swapXY ? levels : ledsPerLevel;
+}
+
+
+uint16_t getSizeY()
+{
+  return swapXY ? ledsPerLevel : levels;
+}
+
 void resetEnergy()
 {
   for (int i=0; i<numLeds; i++) {
@@ -257,6 +277,38 @@ void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax)
   else
    *aByte = (uint8_t)r;
 }
+
+
+/*
+uint16_t ledIndexFromXY(uint16_t aX, uint16_t aY)
+{
+  if (swapXY) { uint16_t tmp = aY; aY = aX; aX = tmp; }
+  if (yReversed) { aY = levels-1-aY; }
+  uint16_t ledindex = aY*ledsPerLevel;
+  bool reversed = xReversed;
+  if (alternating) {
+    if (aY & 0x1) reversed = !reversed;
+  }
+  if (reversed) {
+    ledindex += (ledsPerLevel-1-aX);
+  }
+  else {
+    ledindex += aX;
+  }
+  return ledindex;
+}
+
+void setColorXY(uint16_t aX, uint16_t aY, byte aRed, byte aGreen, byte aBlue)
+{
+  uint16_t ledindex = ledIndexFromXY(aX,aY);
+  if (ledindex>=numPixels) return;
+  RGBPixel *pixP = &(pixelBufferP[ledindex]);
+  // linear brightness is stored with 5bit precision only
+  pixP->red = aRed>>3;
+  pixP->green = aGreen>>3;
+  pixP->blue = aBlue>>3;
+}
+*/
 
 void setColor(struct CRGB *leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue)
 {
