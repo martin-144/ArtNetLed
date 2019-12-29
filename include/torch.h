@@ -5,10 +5,10 @@
 #include <inttypes.h>
 #include "stdint.h"
 
-// ArtNet Settings
-uint8_t artnetLevels;
-uint8_t artnetLevelsRaw;
-uint8_t dmxChannel = 1;
+// ArtNet Settings, defined in artnet.h
+extern uint8_t artnetLevels;
+extern uint8_t artnetLevelsRaw;
+extern uint16_t dmxChannel;
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
@@ -72,7 +72,7 @@ enum { // moving lamp mode params
 
 // torch parameters
 
-uint16_t cycle_wait = 25; // 0..255
+uint8_t cycle_wait = 25; // 0..255
 
 uint8_t flame_min = 20; // 0..255
 uint8_t flame_max = 220; // 0..255
@@ -82,11 +82,11 @@ uint8_t spark_min = 200; // 0..255
 uint8_t spark_max = 255; // 0..255
 
 uint8_t spark_tfr = 40; // 0..256 how much energy is transferred up for a spark per cycle
-uint16_t spark_cap = 200; // 0..255: spark cells: how much energy is retained from previous cycle
+uint8_t spark_cap = 200; // 0..255: spark cells: how much energy is retained from previous cycle
 
-uint16_t up_rad = 35; // up radiation
-uint16_t side_rad = 35; // sidewards radiationc//
-uint16_t heat_cap = 0; // 0..255: passive cells: how much energy is retained from previous cycle
+uint8_t up_rad = 35; // up radiation
+uint8_t side_rad = 35; // sidewards radiationc//
+uint8_t heat_cap = 0; // 0..255: passive cells: how much energy is retained from previous cycle
 
 uint8_t red_bg = 0;
 uint8_t green_bg = 0;
@@ -94,21 +94,18 @@ uint8_t blue_bg = 0;
 uint8_t red_bias = 50;
 uint8_t green_bias = 0;
 uint8_t blue_bias = 0;
-int red_energy = 255;
-int green_energy = 65;
-int blue_energy = 0;
+uint8_t red_energy = 255;
+uint8_t green_energy = 65;
+uint8_t blue_energy = 0;
 
 uint8_t brightness = 255; // overall brightness
 uint8_t fade_base = 140; // crossfading base brightness level
 
 // void torch(struct led *ws2812_framebuffer);
+uint8_t torch_random(uint8_t aMinOrMax, uint8_t aMax);
 void calcNextEnergy();
 void calcNextColors();
-void injectRandom();// lamp mode params
-uint8_t lamp_red = 220;
-uint8_t lamp_green = 0;
-uint8_t lamp_blue = 200;
-uint8_t torch_random(uint8_t aMinOrMax, uint8_t aMax);
+void injectRandom(); // lamp mode params
 void reduce(uint8_t *aByte, uint8_t aAmount, uint8_t aMin);
 void increase(uint8_t *aByte, uint8_t aAmount, uint8_t aMax);
 void setColorXY(uint16_t aX, uint16_t aY, byte aRed, byte aGreen, byte aBlue);
