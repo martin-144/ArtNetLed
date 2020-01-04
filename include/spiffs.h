@@ -3,9 +3,7 @@
 
 #include <FS.h>
 #include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson
-
-extern String WiFiUniverse;
-extern String WiFiDmxChannel;
+#include <artnet.h>
 
 void spiffsRead()
 {
@@ -28,8 +26,8 @@ void spiffsRead()
         DeserializationError error = deserializeJson(doc, configFile);
         if (!error)
         {
-          WiFiDmxChannel = doc["dmxchannel"].as<String>();
-          WiFiUniverse = doc["universe"].as<String>();
+          artnet.dmxChannel = int(doc["dmxchannel"]);
+          artnet.universe = int(doc["universe"]);
           Serial.printf("*SF: Parsed Json: ");
           serializeJson(doc, Serial);
           Serial.println();
@@ -56,8 +54,8 @@ void spiffsWrite()
 {
     Serial.println("*SF: Should save params");
     DynamicJsonDocument doc(1024);
-    doc["universe"] = WiFiUniverse.c_str();
-    doc["dmxchannel"] = WiFiDmxChannel.c_str();
+    doc["universe"] = String(artnet.universe);
+    doc["dmxchannel"] = String(artnet.dmxChannel);
 
     Serial.println("*SF: SPIFFS FS trying to save params...");
 

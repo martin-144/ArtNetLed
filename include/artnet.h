@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 
 // UDP specific
 #define ART_NET_PORT 6454
@@ -24,21 +25,24 @@ extern const int ledPin;
 extern const uint8_t levels;
 extern const uint8_t dimmingLevel;
 
-uint8_t artnetPacket[MAX_BUFFER_ARTNET];
-uint16_t packetSize;
-IPAddress broadcast = {255, 255, 255, 255};
-IPAddress remoteIP;
-uint16_t opcode;
-uint8_t universe;
-uint16_t dmxChannel = 1;
-uint16_t dmxLength;
-uint16_t dmxDataLength;
-uint8_t sequence;
-uint8_t node_ip_address[4];
-uint8_t id[8];
-uint8_t numports = 1;
-uint8_t artnetLevels;
-uint8_t artnetLevelsRaw;
+
+struct artnet_dmx_params_s {
+  // String universe;
+  // String dmxChannel;
+  IPAddress broadcast = {255, 255, 255, 255};
+  uint16_t opcode;
+  uint8_t packet[MAX_BUFFER_ARTNET];
+  uint8_t universe;
+  uint8_t dmxChannel = 1;
+  uint8_t dmxLength;
+  uint8_t dmxDataLength;
+  uint8_t node_ip_address[4];
+  uint8_t id[8];
+  uint8_t numports = 1;
+  uint8_t levels;
+  uint8_t levelsRaw;
+};
+struct artnet_dmx_params_s artnet;
 
 struct art_poll_reply_s {
   uint8_t  id[8];
@@ -76,7 +80,6 @@ struct art_poll_reply_s {
   uint8_t  status2;
   uint8_t  filler[26];
 } __attribute__((packed));
-
 struct art_poll_reply_s ArtPollReply;
 
 void recieveUdp()
@@ -85,7 +88,6 @@ Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
-
   int packetSize = Udp.parsePacket();
 
   //test if a packet has been recieved
@@ -96,24 +98,24 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
 
     // Read Artnet Header
-    int len = Udp.read(artnetPacket, MAX_BUFFER_ARTNET);
+    int len = Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
 
     // Test for empty packet, if empty return
     if(len < 1)
-      return;
+    return;
 
     // Check that packetID is "Art-Net" else ignore
     for (byte i = 0 ; i < 8 ; i++)
     {
-      if (artnetPacket[i] != ART_NET_ID[i])
-        return;
+      if (artnet.packet[i] != ART_NET_ID[i])
+      return;
     }
 
-    opcode = artnetPacket[8] | artnetPacket[9] << 8;
-    universe = artnetPacket[14] | artnetPacket[15] << 8;
-    dmxLength = artnetPacket[17] | artnetPacket[16] << 8;
+    artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
+    artnet.universe = artnet.packet[14] | artnet.packet[15] << 8;
+    artnet.dmxLength = artnet.packet[17] | artnet.packet[16] << 8;
 
-    if (opcode == ART_POLL) // ArtNet OpPoll received
+    if (artnet.opcode == ART_POLL) // ArtNet OpPoll received
     {
       Serial.printf("ArtNet OpPoll received from ");
       Serial.print(Udp.remoteIP());
@@ -122,20 +124,20 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       IPAddress local_ip = WiFi.localIP();
 
-      node_ip_address[0] = local_ip[0];
-      node_ip_address[1] = local_ip[1];
-      node_ip_address[2] = local_ip[2];
-      node_ip_address[3] = local_ip[3];
+      artnet.node_ip_address[0] = local_ip[0];
+      artnet.node_ip_address[1] = local_ip[1];
+      artnet.node_ip_address[2] = local_ip[2];
+      artnet.node_ip_address[3] = local_ip[3];
 
-      sprintf((char *)id, "Art-Net");
-      memcpy(ArtPollReply.id, id, sizeof(ArtPollReply.id));
-      memcpy(ArtPollReply.ip, node_ip_address, sizeof(ArtPollReply.ip));
+      sprintf((char *)artnet.id, "Art-Net");
+      memcpy(ArtPollReply.id, artnet.id, sizeof(ArtPollReply.id));
+      memcpy(ArtPollReply.ip, artnet.node_ip_address, sizeof(ArtPollReply.ip));
 
       ArtPollReply.opCode = ART_POLL_REPLY;
       ArtPollReply.port =  ART_NET_PORT;
 
-      memset(ArtPollReply.goodinput, 0x08, numports);
-      memset(ArtPollReply.goodoutput, 0x80, numports);
+      memset(ArtPollReply.goodinput, 0x08, artnet.numports);
+      memset(ArtPollReply.goodoutput, 0x80, artnet.numports);
       memset(ArtPollReply.porttypes, 0x00, 1);
       memset(ArtPollReply.porttypes, 0xc0, 1);
 
@@ -161,51 +163,51 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       ArtPollReply.swremote   = 0;
       ArtPollReply.style      = 0;
 
-      ArtPollReply.numports[1] = (numports >> 8) & 0xff;
-      ArtPollReply.numports[0] = numports & 0xff;
+      ArtPollReply.numports[1] = (artnet.numports >> 8) & 0xff;
+      ArtPollReply.numports[0] = artnet.numports & 0xff;
       ArtPollReply.status2   = 0x08;
 
-      ArtPollReply.bindip[0] = node_ip_address[0];
-      ArtPollReply.bindip[1] = node_ip_address[1];
-      ArtPollReply.bindip[2] = node_ip_address[2];
-      ArtPollReply.bindip[3] = node_ip_address[3];
+      ArtPollReply.bindip[0] = artnet.node_ip_address[0];
+      ArtPollReply.bindip[1] = artnet.node_ip_address[1];
+      ArtPollReply.bindip[2] = artnet.node_ip_address[2];
+      ArtPollReply.bindip[3] = artnet.node_ip_address[3];
 
       uint8_t swin[4]  = {0x01,0x02,0x03,0x04};
       uint8_t swout[4] = {0x01,0x02,0x03,0x04};
 
-      for(uint8_t i = 0; i < numports; i++)
+      for(uint8_t i = 0; i < artnet.numports; i++)
       {
-          ArtPollReply.swout[i] = swout[i];
-          ArtPollReply.swin[i] = swin[i];
+        ArtPollReply.swout[i] = swout[i];
+        ArtPollReply.swin[i] = swin[i];
       }
 
-      sprintf((char *)ArtPollReply.nodereport, "%d DMX output universes active.", numports);
+      sprintf((char *)ArtPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
       Serial.println("Sending ArtNet OpPollReply Packet...");
 
-      Udp.beginPacket(broadcast, ART_NET_PORT); //send ArtNet OpPollReply
+      Udp.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
       Udp.write((uint8_t *)&ArtPollReply, sizeof(ArtPollReply));
       Udp.endPacket();
     }
 
-    if(opcode == ART_DMX) // Test for Art-Net DMX packet
+    if(artnet.opcode == ART_DMX) // Test for Art-Net DMX packet
     {
-      Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", universe, dmxLength);
+      Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", artnet.universe, artnet.dmxLength);
 
-      brightness = artnetPacket[ART_DMX_START + dmxChannel];
-      artnetLevelsRaw = artnetPacket[ART_DMX_START + dmxChannel + 1];
-      artnetLevels = artnetLevelsRaw * levels / 255;
+      brightness = artnet.packet[ART_DMX_START + artnet.dmxChannel];
+      artnet.levelsRaw = artnet.packet[ART_DMX_START + artnet.dmxChannel + 1];
+      artnet.levels = artnet.levelsRaw * levels / 255;
 
       // Dim Torch when <= artnet_levels
-      if (artnetLevels <= dimmingLevel)
+      if (artnet.levels <= dimmingLevel)
       {
-      // Serial.printf("levels = %d, dimming_level = %d\n", levels, dimming_level);
-      // Serial.printf("Dimming Level = %d\n", map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255));
-      // brightness = map(artnetLevelsRaw, 0, 60, 0, brightness);
-      brightness = map(artnetLevelsRaw, 0, 60, 0, brightness); // why is it 60 ?
+        // Serial.printf("levels = %d, dimming_level = %d\n", levels, dimming_level);
+        // Serial.printf("Dimming Level = %d\n", map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255));
+        // brightness = map(artnetLevelsRaw, 0, 60, 0, brightness);
+        brightness = map(artnet.levelsRaw, 0, 60, 0, brightness); // why is it 60 ?
       }
 
-      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", brightness, artnetLevels, artnetLevelsRaw);
+      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", brightness, artnet.levels, artnet.levelsRaw);
       digitalWrite(ledPin, 1);  // Unlight LED
     }
   }
