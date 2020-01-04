@@ -3,7 +3,7 @@
 
 #include <FastLED.h>
 #include <inttypes.h>
-#include "stdint.h"
+#include <stdint.h>
 
 // ArtNet Settings, defined in artnet.h
 extern uint8_t artnetLevels;
@@ -126,11 +126,11 @@ void calcNextEnergy()
                     // loose transfer up energy as long as the is any
                     reduce(&e, spark_tfr, 0);
                     // cell above is temp spark, sucking up energy from this cell until empty
-                    if (y<artnet.levels-1) {
+                    if (y < artnet.levels-1) {
                         energyMode[i+ledsPerLevel] = torch_spark_temp;
                     }
                     // 20191206 by Martin; If artnetlevels < ledsPerLevel set LEDs above off
-                    else if (y>artnet.levels-1) {
+                    else if (y > artnet.levels-1) {
                         energyMode[i+ledsPerLevel] = torch_passive;
                     }
                     break;

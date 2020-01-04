@@ -27,8 +27,6 @@ extern const uint8_t dimmingLevel;
 
 
 struct artnet_dmx_params_s {
-  // String universe;
-  // String dmxChannel;
   IPAddress broadcast = {255, 255, 255, 255};
   uint16_t opcode;
   uint8_t packet[MAX_BUFFER_ARTNET];
@@ -110,7 +108,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       if (artnet.packet[i] != ART_NET_ID[i])
       return;
     }
-
+    
     artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
     artnet.universe = artnet.packet[14] | artnet.packet[15] << 8;
     artnet.dmxLength = artnet.packet[17] | artnet.packet[16] << 8;
