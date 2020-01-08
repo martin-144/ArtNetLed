@@ -25,7 +25,6 @@ extern const int ledPin;
 extern const uint8_t levels;
 extern const uint8_t dimmingLevel;
 
-
 struct artnet_dmx_params_s {
   IPAddress broadcast = {255, 255, 255, 255};
   uint16_t opcode;
@@ -39,6 +38,7 @@ struct artnet_dmx_params_s {
   uint8_t numports = 1;
   uint8_t levels;
   uint8_t levelsRaw;
+  uint8_t cycleWait;
 };
 struct artnet_dmx_params_s artnet;
 
@@ -108,7 +108,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       if (artnet.packet[i] != ART_NET_ID[i])
       return;
     }
-    
+
     artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
     artnet.universe = artnet.packet[14] | artnet.packet[15] << 8;
     artnet.dmxLength = artnet.packet[17] | artnet.packet[16] << 8;
@@ -194,6 +194,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       brightness = artnet.packet[ART_DMX_START + artnet.dmxChannel];
       artnet.levelsRaw = artnet.packet[ART_DMX_START + artnet.dmxChannel + 1];
+      artnet.cycleWait = artnet.packet[ART_DMX_START + artnet.dmxChannel + 2];
       artnet.levels = artnet.levelsRaw * levels / 255;
 
       // Dim Torch when <= artnet_levels

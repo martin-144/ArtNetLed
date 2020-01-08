@@ -9,6 +9,7 @@
 #include <EasyButton.h>
 #include <artnet.h>
 #include <torch.h>
+#include <effects.h>
 #include <string>
 
 // UDP settings
@@ -93,8 +94,9 @@ void setup()
 
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");
-}
 
+  currentPalette = PartyColors_p;
+}
 
 void loop()
 {
@@ -102,15 +104,27 @@ void loop()
   recieveUdp();
 
   // prepare Torch animation
-  EVERY_N_MILLISECONDS(cycle_wait)
+  EVERY_N_MILLISECONDS_I(animationTimer, 1)
   {
-    injectRandom();
-    calcNextEnergy();
-    calcNextColors();
-  }
+    animationTimer.setPeriod(0);
+    // Serial.printf("ArtNet cycleWait: %d\n", artnet.cycleWait);
 
-  // display on WS2812
-  FastLED.show();
+    /* This is all Torch Stuff
+    // injectRandom();
+    // calcNextEnergy();
+    // calcNextColors();
+    */
+
+    // Other Effects
+    // twinkle(0xff, 0, 0, 10, 100, false);
+    setStaticColor(0, 20, 0);
+    // meteorRain(0x55, 0x00, 0x55, 10, 48, true);
+    // onePixelUp(20, 20, 20);
+    // sparkle(0xff, 0xff, 0xff, 0);
+    // plasma();
+    // display on WS2812
+    FastLED.show();
+  }
 
   flashButton.read();
 
@@ -120,5 +134,9 @@ void loop()
     digitalWrite(ledPin, 0);  // LED on
     delay(2);
     digitalWrite(ledPin, 1);  // LED off
+
+    nblendPaletteTowardPalette(currentPalette, targetPalette, 24);   // AWESOME palette blending capability.
+    uint8_t baseC = random8();                                       // You can use this as a baseline colour if you want similar hues in the next line.
+    targetPalette = CRGBPalette16(CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)), CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)));
   }
 }

@@ -15,13 +15,13 @@ extern uint16_t dmxChannel;
 // Higher number = diameter of the torch gets larger
 // Ast 8
 // Lamp 14
-const uint8_t ledsPerLevel = 8;
+const uint8_t ledsPerLevel = 14;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint8_t levels = 21;
+const uint8_t levels = 28;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;
@@ -49,6 +49,7 @@ const bool swapXY = false;
 // const bool alternating = false; // direction changes after every row
 
 const uint16_t numLeds = ledsPerLevel * levels; // total number of LEDs
+
 CRGB leds[numLeds];
 
 // global parameters
@@ -71,8 +72,6 @@ enum { // moving lamp mode params
 };
 
 // torch parameters
-
-uint8_t cycle_wait = 25; // 0..255
 
 uint8_t flame_min = 20; // 0..255
 uint8_t flame_max = 220; // 0..255
