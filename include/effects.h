@@ -12,21 +12,21 @@ CRGBPalette16 targetPalette;
 TBlendType currentBlending = LINEARBLEND;
 
 
-void setPixel(int Pixel, byte red, byte green, byte blue)
+void setPixel(int Pixel, CRGB color)
 {
    // FastLED
-   leds[Pixel]= CRGB(red, green, blue);
+   leds[Pixel] = color;
 }
 
-void setAll(byte red, byte green, byte blue)
+void setAll(CRGB color)
 {
   for(int i = 0; i < numLeds; i++ )
   {
-    setPixel(i, red, green, blue);
+    setPixel(i, color);
   }
 }
 
-void meteorRain(byte red, byte green, byte blue, byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay)
+void meteorRain(CRGB color, byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay)
 {
   static uint8_t i;
 
@@ -45,45 +45,51 @@ void meteorRain(byte red, byte green, byte blue, byte meteorSize, byte meteorTra
       if(( i-j < numLeds) && (i-j>=0))
       {
         // setPixel(i-j, red, green, blue);
-        leds[i-j] = CRGB(red, green, blue);
+        leds[i-j] = color;
       }
     }
 if(i++ == numLeds) {i = 0;}
 }
 
-void setStaticColor(byte red, byte green, byte blue)
+void setStaticColor(CRGB color)
 {
     for(int j=0; j < numLeds; j++)
     {
-      leds[j] = CRGB(red, green, blue);
+      leds[j] = color;
     }
 }
 
-void onePixelUp(byte red, byte green, byte blue)
+void onePixelUp(CRGB color, uint8_t faderows)
 {
     // fade brightness all LEDs one step
-    static uint8_t i;
+    static uint8_t row;
 
-    leds[i] = CRGB(red, green, blue);
-    leds[i-1] = CRGB(0, 0, 0);
-
-    if(i++ == numLeds) {i = 0;}
+    for(uint8_t n = 0; n <= ledsPerLevel; n++)
+    {
+      leds[row*ledsPerLevel+n] = color;
+      for(uint8_t f = 0; f <= faderows; f++)
+      {
+        if(random(15)>5)
+          leds[(row-f)*ledsPerLevel+n].fadeToBlackBy(128);
+      }
+    }
+    if(row++ == levels) {row = 0;}
 }
 
-void sparkle(byte red, byte green, byte blue, int SpeedDelay)
+void sparkle(CRGB color, int SpeedDelay)
 {
   int Pixel = random(numLeds);
-  setPixel(Pixel,red,green,blue);
+  setPixel(Pixel, color);
   FastLED.show();
   delay(SpeedDelay);
-  setPixel(Pixel,0,0,0);
+  setPixel(Pixel, CRGB(0,0,0));
 }
 
 void plasma()
-{                                                 // This is the heart of this program. Sure is short. . . and fast.
+{                                                // This is the heart of this program. Sure is short. . . and fast.
 
-  int thisPhase = beatsin8(3,-64,64);                           // Setting phase change for a couple of waves.
-  int thatPhase = beatsin8(13,-256,64);
+  int thisPhase = beatsin8(3,-64,64);            // Setting phase change for a couple of waves.
+  int thatPhase = beatsin8(13,-255,64);
 
   for (int k=0; k<numLeds; k++)
   {                              // For each of the LED's in the strand, set a brightness based on a wave as follows:

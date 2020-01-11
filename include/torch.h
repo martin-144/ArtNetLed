@@ -22,6 +22,7 @@ const uint8_t ledsPerLevel = 14;
 // Ast 26
 // Lamp 28
 const uint8_t levels = 28;
+uint8_t artnetLevels;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;
@@ -125,11 +126,11 @@ void calcNextEnergy()
                     // loose transfer up energy as long as the is any
                     reduce(&e, spark_tfr, 0);
                     // cell above is temp spark, sucking up energy from this cell until empty
-                    if (y < artnet.levels-1) {
+                    if (y < artnetLevels-1) {
                         energyMode[i+ledsPerLevel] = torch_spark_temp;
                     }
                     // 20191206 by Martin; If artnetlevels < ledsPerLevel set LEDs above off
-                    else if (y > artnet.levels-1) {
+                    else if (y > artnetLevels-1) {
                         energyMode[i+ledsPerLevel] = torch_passive;
                     }
                     break;
@@ -165,7 +166,7 @@ void calcNextEnergy()
 }
 const uint8_t energymap[32] = {0, 64, 96, 112, 128, 144, 152, 160, 168, 176, 184, 184, 192, 200, 200, 208, 208, 216, 216, 224, 224, 224, 232, 232, 232, 240, 240, 240, 240, 248, 248, 248};
 
-void calcNextColors()
+void calcNextColors(CRGB color)
 {
     for (int i=0; i<numLeds; i++) {
         uint16_t e = nextEnergy[i];
@@ -180,9 +181,9 @@ void calcNextColors()
                 uint8_t r = red_bias;
                 uint8_t g = green_bias;
                 uint8_t b = blue_bias;
-                increase(&r, (eb*red_energy)>>8, 255);
-                increase(&g, (eb*green_energy)>>8, 255);
-                increase(&b, (eb*blue_energy)>>8, 255);
+                increase(&r, (eb*color.r)>>8, 255);
+                increase(&g, (eb*color.g)>>8, 255);
+                increase(&b, (eb*color.b)>>8, 255);
                 setColorDimmed(leds , i, r, g, b, brightness);
             }
             else {
@@ -212,6 +213,16 @@ void injectRandom()
 
 // Utilities
 // =========
+
+/* Dim Torch when <= artnet_levels
+if (artnetLevels <= dimmingLevel)
+{
+  // Serial.printf("levels = %d, dimming_level = %d\n", levels, dimming_level);
+  // Serial.printf("Dimming Level = %d\n", map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255));
+  // brightness = map(artnetLevelsRaw, 0, 60, 0, brightness);
+  brightness = map(artnetTorchParams.param1, 0, 60, 0, artnetTorchParams.brightness); // why is it 60 ?
+}
+*/
 
 int getNumPixels()
 {

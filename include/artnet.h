@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
+#include <torch.h>
 
 // UDP specific
 #define ART_NET_PORT 6454
@@ -36,11 +37,18 @@ struct artnet_dmx_params_s {
   uint8_t node_ip_address[4];
   uint8_t id[8];
   uint8_t numports = 1;
-  uint8_t levels;
-  uint8_t levelsRaw;
-  uint8_t cycleWait;
 };
 struct artnet_dmx_params_s artnet;
+
+struct artnet_torch_params_s {
+  uint8_t brightness;
+  CRGB colorRGB;
+  uint8_t effect;
+  uint8_t speed;
+  uint8_t param1;
+  uint8_t param2;
+};
+struct artnet_torch_params_s artnetTorchParams;
 
 struct art_poll_reply_s {
   uint8_t  id[8];
@@ -190,23 +198,29 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     if(artnet.opcode == ART_DMX) // Test for Art-Net DMX packet
     {
+      /* Artnet Channel mapping:
+         1: brightness;
+         2,3,4: colorRGB;
+         5: effect;
+         6: speed;
+         7: param1;
+         8: param2;
+      */
+
       Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", artnet.universe, artnet.dmxLength);
 
-      brightness = artnet.packet[ART_DMX_START + artnet.dmxChannel];
-      artnet.levelsRaw = artnet.packet[ART_DMX_START + artnet.dmxChannel + 1];
-      artnet.cycleWait = artnet.packet[ART_DMX_START + artnet.dmxChannel + 2];
-      artnet.levels = artnet.levelsRaw * levels / 255;
+      artnetTorchParams.brightness = artnet.packet[ART_DMX_START + artnet.dmxChannel];
+      artnetTorchParams.colorRGB = CRGB(artnet.packet[ART_DMX_START + artnet.dmxChannel + 1],
+                                        artnet.packet[ART_DMX_START + artnet.dmxChannel + 2],
+                                        artnet.packet[ART_DMX_START + artnet.dmxChannel + 3]);
+      artnetTorchParams.effect = artnet.packet[ART_DMX_START + artnet.dmxChannel + 4];
+      artnetTorchParams.speed = artnet.packet[ART_DMX_START + artnet.dmxChannel + 5];
+      artnetTorchParams.param1 = artnet.packet[ART_DMX_START + artnet.dmxChannel + 6];
+      artnetTorchParams.param2 = artnet.packet[ART_DMX_START + artnet.dmxChannel + 7];
 
-      // Dim Torch when <= artnet_levels
-      if (artnet.levels <= dimmingLevel)
-      {
-        // Serial.printf("levels = %d, dimming_level = %d\n", levels, dimming_level);
-        // Serial.printf("Dimming Level = %d\n", map(artnet_levels_raw, 0, ledsPerLevel * dimmingLevel, 0, 255));
-        // brightness = map(artnetLevelsRaw, 0, 60, 0, brightness);
-        brightness = map(artnet.levelsRaw, 0, 60, 0, brightness); // why is it 60 ?
-      }
+      artnetLevels = artnetTorchParams.param1 * levels / 255;
 
-      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", brightness, artnet.levels, artnet.levelsRaw);
+      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", artnetTorchParams.brightness, artnetLevels, artnetTorchParams.param1);
       digitalWrite(ledPin, 1);  // Unlight LED
     }
   }

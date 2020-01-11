@@ -104,25 +104,49 @@ void loop()
   recieveUdp();
 
   // prepare Torch animation
-  EVERY_N_MILLISECONDS_I(animationTimer, 1)
+  EVERY_N_MILLISECONDS_I(animationTimer, 20)
   {
-    animationTimer.setPeriod(0);
-    // Serial.printf("ArtNet cycleWait: %d\n", artnet.cycleWait);
+    animationTimer.setPeriod(255 - artnetTorchParams.speed);
 
-    /* This is all Torch Stuff
-    // injectRandom();
-    // calcNextEnergy();
-    // calcNextColors();
-    */
+    switch(artnetTorchParams.effect)
+    {
+      case 0 ... 19:
+        // This is all Torch Stuff
+        Serial.println("Effect: Fire");
+        injectRandom();
+        calcNextEnergy();
+        calcNextColors(artnetTorchParams.colorRGB);
+        break;
 
-    // Other Effects
-    // twinkle(0xff, 0, 0, 10, 100, false);
-    setStaticColor(0, 20, 0);
-    // meteorRain(0x55, 0x00, 0x55, 10, 48, true);
-    // onePixelUp(20, 20, 20);
-    // sparkle(0xff, 0xff, 0xff, 0);
-    // plasma();
-    // display on WS2812
+      case 20 ... 39:
+        Serial.println("Effect: Static color");
+        setStaticColor(artnetTorchParams.colorRGB);
+        break;
+
+      case 40 ... 59:
+        Serial.println("Effect: Sparkle");
+        sparkle(artnetTorchParams.colorRGB, 10);
+        break;
+
+      case 60 ... 79:
+        Serial.println("Effect: Meteor rain");
+        meteorRain(artnetTorchParams.colorRGB, 10, 48, true);
+        break;
+
+      case 80 ... 99:
+        Serial.println("Effect: onePixelUp");
+        onePixelUp(artnetTorchParams.colorRGB, 20);
+        break;
+
+      case 100 ... 119:
+        plasma();
+        break;
+
+      default:
+        setStaticColor(CRGB(20, 0, 0));
+        break;
+    }
+    FastLED.setBrightness(artnetTorchParams.brightness);
     FastLED.show();
   }
 
