@@ -110,12 +110,18 @@ void loop()
 
     switch(artnetTorchParams.effect)
     {
+
       case 0 ... 19:
+        Serial.println("Effect: No Effect");
+        FastLED.clear();
+        break;
+
+      case 20 ... 39:
         Serial.println("Effect: Static color");
         setAll(artnetTorchParams.colorRGB);
         break;
 
-      case 20 ... 39:
+      case 40 ... 59:
         // This is all Torch Stuff
         // param1 = fadeheight
         Serial.println("Effect: Fire");
@@ -124,18 +130,18 @@ void loop()
         calcNextColors(artnetTorchParams.colorRGB);
         break;
 
-      case 40 ... 59:
+      case 60 ... 79:
         Serial.println("Effect: Meteor rain");
         meteorRain(artnetTorchParams.colorRGB, 10, 48, true);
         break;
 
-      case 60 ... 89:
+      case 80 ... 99:
         // param1 = faderows
         Serial.println("Effect: onePixelUp");
         meteorRainRows(artnetTorchParams.colorRGB, (255-artnetTorchParams.param1)/10.0);
         break;
 
-      case 90 ... 119:
+      case 100 ... 219:
         plasma();
         break;
 
