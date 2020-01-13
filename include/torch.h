@@ -184,7 +184,7 @@ void calcNextColors(CRGB color)
                 increase(&r, (eb*color.r)>>8, 255);
                 increase(&g, (eb*color.g)>>8, 255);
                 increase(&b, (eb*color.b)>>8, 255);
-                setColorDimmed(leds , i, r, g, b, brightness);
+                setColorDimmed(leds, i, r, g, b, brightness);
             }
             else {
                 // background, no energy
@@ -203,8 +203,10 @@ void injectRandom()
         energyMode[i] = torch_nop;
     }
     // random sparks at second row
-    for (int i=ledsPerLevel; i<2*ledsPerLevel; i++) {
-        if (energyMode[i]!=torch_spark && torch_random(100, 0)<random_spark_probability) {
+    for (int i=ledsPerLevel; i<2*ledsPerLevel; i++)
+    {
+        if (energyMode[i]!=torch_spark && torch_random(100, 0)<random_spark_probability)
+        {
             currentEnergy[i] = torch_random(spark_min, spark_max);
             energyMode[i] = torch_spark;
         }

@@ -59,7 +59,7 @@ void setStaticColor(CRGB color)
     }
 }
 
-void onePixelUp(CRGB color, uint8_t faderows)
+void meteorRainRows(CRGB color, uint8_t fadeRows)
 {
     // fade brightness all LEDs one step
     static uint8_t row;
@@ -67,7 +67,7 @@ void onePixelUp(CRGB color, uint8_t faderows)
     for(uint8_t n = 0; n <= ledsPerLevel; n++)
     {
       leds[row*ledsPerLevel+n] = color;
-      for(uint8_t f = 0; f <= faderows; f++)
+      for(uint8_t f = 0; f <= (255-fadeRows)/10; f++)
       {
         if(random(15)>5)
           leds[(row-f)*ledsPerLevel+n].fadeToBlackBy(128);
@@ -81,8 +81,10 @@ void sparkle(CRGB color, int SpeedDelay)
   int Pixel = random(numLeds);
   setPixel(Pixel, color);
   FastLED.show();
-  delay(SpeedDelay);
-  setPixel(Pixel, CRGB(0,0,0));
+  EVERY_N_MILLISECONDS(20)
+    {
+      setPixel(Pixel, CRGB(0,0,0));
+    }
 }
 
 void plasma()
@@ -100,4 +102,5 @@ void plasma()
     leds[k] = ColorFromPalette(currentPalette, colorIndex, thisBright, currentBlending);  // Let's now add the foreground colour.
   }
 }
+
 #endif // EFFECTS_H
