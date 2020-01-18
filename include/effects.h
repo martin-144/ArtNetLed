@@ -53,30 +53,32 @@ if(i++ == numLeds) {i = 0;}
 
 void setStaticColor(CRGB color)
 {
-    for(int j=0; j < numLeds; j++)
-    {
-      leds[j] = color;
-    }
+    fill_solid( leds, numLeds, color);
 }
 
 void meteorRainRows(CRGB color, uint8_t fadeRows)
 {
-    // fade brightness all LEDs one step
+    fadeRows = fadeRows / levels + 1;
     static uint8_t row;
 
     for(uint8_t n = 0; n <= ledsPerLevel; n++)
     {
-      leds[row*ledsPerLevel+n] = color;
-      for(uint8_t f = 0; f <= (255-fadeRows)/10; f++)
+      leds[row * ledsPerLevel + n] = color;
+
+      for(uint8_t fr = 0; fr <= fadeRows; fr++)
       {
         if(random(15)>5)
-          leds[(row-f)*ledsPerLevel+n].fadeToBlackBy(128);
+        {
+          leds[(row - fr) * ledsPerLevel + n].fadeToBlackBy(255 / fadeRows + 128);
+        }
       }
+      leds[(row - fadeRows) * ledsPerLevel + n] = 0;
     }
     if(row++ == levels) {row = 0;}
 }
 
-void sparkle(CRGB color, int SpeedDelay)
+
+void sparkle(CRGB color)
 {
   int Pixel = random(numLeds);
   setPixel(Pixel, color);

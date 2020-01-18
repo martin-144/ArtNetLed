@@ -112,36 +112,36 @@ void loop()
     {
 
       case 0 ... 19:
-        Serial.println("Effect: No Effect");
+        // Serial.println("Effect: No Effect");
         FastLED.clear();
         break;
 
       case 20 ... 39:
-        Serial.println("Effect: Static color");
+        // Serial.println("Effect: Static color");
         setAll(artnetTorchParams.colorRGB);
         break;
 
       case 40 ... 59:
         // This is all Torch Stuff
         // param1 = fadeheight
-        Serial.println("Effect: Fire");
+        // Serial.println("Effect: Fire");
         injectRandom();
         calcNextEnergy();
         calcNextColors(artnetTorchParams.colorRGB);
         break;
 
       case 60 ... 79:
-        Serial.println("Effect: Meteor rain");
+        // Serial.println("Effect: Meteor rain");
         meteorRain(artnetTorchParams.colorRGB, 10, 48, true);
         break;
 
       case 80 ... 99:
         // param1 = faderows
-        Serial.println("Effect: onePixelUp");
-        meteorRainRows(artnetTorchParams.colorRGB, (255-artnetTorchParams.param1)/10.0);
+        // Serial.println("Effect: meteorRainRows");
+        meteorRainRows(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
 
-      case 100 ... 219:
+      case 100 ... 119:
         plasma();
         break;
 
@@ -151,12 +151,12 @@ void loop()
     }
   }
 
-  EVERY_N_MILLISECONDS(1)
+  EVERY_N_MILLISECONDS(10)
   {
     // Add sparkle
     if(artnetTorchParams.param2)
     {
-      sparkle(CRGB(255,255,255), artnetTorchParams.param2);
+      sparkle(CRGB(255,255,255).nscale8(artnetTorchParams.param2));
     }
 
     FastLED.setBrightness(artnetTorchParams.brightness);
