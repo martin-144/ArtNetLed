@@ -92,10 +92,12 @@ void setup()
   // setup Torch
   resetEnergy();
 
+  // disable FastLED dither to prevent flickering
+  FastLED.setDither(0);
+
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");
 
-  currentPalette = PartyColors_p;
 }
 
 void loop()
@@ -142,10 +144,21 @@ void loop()
         break;
 
       case 100 ... 119:
-        plasma();
+        // Serial.println("Effect: Plasma");
+        plasma(artnetTorchParams.param1);
+        break;
+
+      case 120 ... 139:
+        // Serial.println("Effect: confetti");
+        confetti(artnetTorchParams.colorRGB, artnetTorchParams.param1);
+        break;
+
+      case 140 ... 159:
+        staticRainbow(artnetTorchParams.param1);
         break;
 
       default:
+        // Serial.println("Effect: none");
         setAll(CRGB(20, 0, 0));
         break;
     }

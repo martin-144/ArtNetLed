@@ -12,21 +12,18 @@ CRGBPalette16 targetPalette;
 TBlendType currentBlending = LINEARBLEND;
 
 
-void setPixel(int Pixel, CRGB color)
+void setPixel(int Pixel, CRGB colorRGB)
 {
    // FastLED
-   leds[Pixel] = color;
+   leds[Pixel] = colorRGB;
 }
 
 void setAll(CRGB color)
 {
-  for(int i = 0; i < numLeds; i++ )
-  {
-    setPixel(i, color);
-  }
+  fill_solid( leds, numLeds, color);
 }
 
-void meteorRain(CRGB color, byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay)
+void meteorRain(CRGB colorRGB, byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay)
 {
   static uint8_t i;
 
@@ -45,25 +42,20 @@ void meteorRain(CRGB color, byte meteorSize, byte meteorTrailDecay, boolean mete
       if(( i-j < numLeds) && (i-j>=0))
       {
         // setPixel(i-j, red, green, blue);
-        leds[i-j] = color;
+        leds[i-j] = colorRGB;
       }
     }
 if(i++ == numLeds) {i = 0;}
 }
 
-void setStaticColor(CRGB color)
-{
-    fill_solid( leds, numLeds, color);
-}
-
-void meteorRainRows(CRGB color, uint8_t fadeRows)
+void meteorRainRows(CRGB colorRGB, uint8_t fadeRows)
 {
     fadeRows = fadeRows / levels + 1;
     static uint8_t row;
 
     for(uint8_t n = 0; n <= ledsPerLevel; n++)
     {
-      leds[row * ledsPerLevel + n] = color;
+      leds[row * ledsPerLevel + n] = colorRGB;
 
       for(uint8_t fr = 0; fr <= fadeRows; fr++)
       {
@@ -78,10 +70,10 @@ void meteorRainRows(CRGB color, uint8_t fadeRows)
 }
 
 
-void sparkle(CRGB color)
+void sparkle(CRGB colorRGB)
 {
   int Pixel = random(numLeds);
-  setPixel(Pixel, color);
+  setPixel(Pixel, colorRGB);
   FastLED.show();
   EVERY_N_MILLISECONDS(20)
     {
@@ -89,20 +81,36 @@ void sparkle(CRGB color)
     }
 }
 
-void plasma()
+void plasma(uint8_t palette)
 {                                                // This is the heart of this program. Sure is short. . . and fast.
+  currentPalette = RainbowColors_p;
 
-  int thisPhase = beatsin8(3,-64,64);            // Setting phase change for a couple of waves.
+  int thisPhase = beatsin8(7,-64,64);            // Setting phase change for a couple of waves.
   int thatPhase = beatsin8(13,-255,64);
 
-  for (int k=0; k<numLeds; k++)
-  {                              // For each of the LED's in the strand, set a brightness based on a wave as follows:
+  for (int i=0; i<numLeds; i++)  // For each of the LED's in the strand, set a brightness based on a wave as follows:
+  {
+    int colorIndex = cubicwave8((i*23)+thisPhase)/2 + cos8((i*15)+thatPhase)/2;           // Create a wave and add a phase change and add another wave with its own phase change.. Hey, you can even change the frequencies if you wish.
+    int thisBright = qsuba(colorIndex, beatsin8(5,0,96));                                 // qsub gives it a bit of 'black' dead space by setting sets a minimum value. If colorIndex < current value of beatsin8(), then bright = 0. Otherwise, bright = colorIndex..
 
-    int colorIndex = cubicwave8((k*23)+thisPhase)/2 + cos8((k*15)+thatPhase)/2;           // Create a wave and add a phase change and add another wave with its own phase change.. Hey, you can even change the frequencies if you wish.
-    int thisBright = qsuba(colorIndex, beatsin8(7,0,96));                                 // qsub gives it a bit of 'black' dead space by setting sets a minimum value. If colorIndex < current value of beatsin8(), then bright = 0. Otherwise, bright = colorIndex..
-
-    leds[k] = ColorFromPalette(currentPalette, colorIndex, thisBright, currentBlending);  // Let's now add the foreground colour.
+    leds[i] = ColorFromPalette(currentPalette, colorIndex, thisBright, currentBlending);  // Let's now add the foreground colour.
   }
+}
+
+void confetti(CRGB colorRGB, uint8_t hueOffset)
+{
+  CHSV colorHSV;
+  // random colored speckles that blink in and fade smoothly
+  fadeToBlackBy( leds, numLeds, 10);
+  int pos = random16(numLeds);
+  colorHSV = rgb2hsv_approximate(colorRGB);
+  leds[pos] += CHSV(colorHSV.hue - hueOffset / 2 + random8(hueOffset), 255, 255);
+}
+
+void staticRainbow(uint8_t hueOffset)
+{
+  // built-in static FastLED rainbow
+  fill_rainbow(leds, numLeds, 0, hueOffset / 12 + 1);
 }
 
 #endif // EFFECTS_H
