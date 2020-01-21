@@ -35,7 +35,8 @@ EasyButton flashButton(flashButtonPin);
 IPAddress broadcastIp(255, 255, 255, 255);
 
 // Callback function to be called when the button is pressed.
-void onPressedForDuration() {
+void onPressedForDuration()
+{
   Serial.println("Flash button has been pressed for 4 seconds.");
   Serial.println("Resetting ESP...");
 
@@ -133,32 +134,33 @@ void loop()
         break;
 
       case 60 ... 79:
-        // Serial.println("Effect: Meteor rain");
+        // Serial.println("Effect: MeteorRain");
         meteorRain(artnetTorchParams.colorRGB, 10, 48, true);
         break;
 
       case 80 ... 99:
         // param1 = faderows
-        // Serial.println("Effect: meteorRainRows");
+        // Serial.println("Effect: MeteorRainRows");
         meteorRainRows(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
 
       case 100 ... 119:
+        // Serial.println("Effect: Confetti");
+        confetti(artnetTorchParams.colorRGB, artnetTorchParams.param1);
+        break;
+
+      case 120 ... 139:
+        // Serial.println("Effect: Static Rainbow");
+        staticRainbow(artnetTorchParams.param1);
+        break;
+
+      case 140 ... 159:
         // Serial.println("Effect: Plasma");
         plasma(artnetTorchParams.param1);
         break;
 
-      case 120 ... 139:
-        // Serial.println("Effect: confetti");
-        confetti(artnetTorchParams.colorRGB, artnetTorchParams.param1);
-        break;
-
-      case 140 ... 159:
-        staticRainbow(artnetTorchParams.param1);
-        break;
-
       default:
-        // Serial.println("Effect: none");
+        // Serial.println("Effect: Not Used");
         setAll(CRGB(20, 0, 0));
         break;
     }
@@ -171,7 +173,10 @@ void loop()
     {
       sparkle(CRGB(255,255,255).nscale8(artnetTorchParams.param2));
     }
+  }
 
+  EVERY_N_MILLISECONDS(10)
+  {
     FastLED.setBrightness(artnetTorchParams.brightness);
     FastLED.show();
   }

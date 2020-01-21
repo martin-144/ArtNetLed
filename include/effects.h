@@ -39,7 +39,7 @@ void meteorRain(CRGB colorRGB, byte meteorSize, byte meteorTrailDecay, boolean m
     // draw meteor
     for(int j = 0; j < meteorSize; j++)
     {
-      if(( i-j < numLeds) && (i-j>=0))
+      if((i-j < numLeds) && (i-j>=0))
       {
         // setPixel(i-j, red, green, blue);
         leds[i-j] = colorRGB;
@@ -72,13 +72,43 @@ void meteorRainRows(CRGB colorRGB, uint8_t fadeRows)
 
 void sparkle(CRGB colorRGB)
 {
-  int Pixel = random(numLeds);
-  setPixel(Pixel, colorRGB);
-  FastLED.show();
-  EVERY_N_MILLISECONDS(20)
-    {
-      setPixel(Pixel, CRGB(0,0,0));
-    }
+  static uint8_t pixelOn = 1;
+  static uint8_t pixel;
+
+  if (pixelOn)
+  {
+    pixel = random(numLeds);
+    setPixel(pixel, colorRGB);
+    pixelOn = 0;
+  }
+  else
+  {
+    setPixel(pixel, 0);
+    pixelOn = 1;
+  }
+}
+
+void confetti(CRGB colorRGB, uint8_t hueOffset)
+{
+  CHSV colorHSV = rgb2hsv_approximate(colorRGB);
+
+  // This many pixels will be set per cycle. Gives the effect of speed-up.
+  uint8_t numPixel = 3;
+
+  // random colored speckles that blink in and fade smoothly
+  fadeToBlackBy(leds, numLeds, 10 * numPixel);
+
+  for(uint8_t num = 0; num <= numPixel; num++)
+  {
+    int pos = random16(numLeds);
+    leds[pos] += CHSV(colorHSV.hue - (hueOffset / 2) + random8(hueOffset), 255, 255);
+  }
+}
+
+void staticRainbow(uint8_t hueOffset)
+{
+  // built-in static FastLED rainbow
+  fill_rainbow(leds, numLeds, 0, hueOffset / 12 + 1);
 }
 
 void plasma(uint8_t palette)
@@ -95,22 +125,6 @@ void plasma(uint8_t palette)
 
     leds[i] = ColorFromPalette(currentPalette, colorIndex, thisBright, currentBlending);  // Let's now add the foreground colour.
   }
-}
-
-void confetti(CRGB colorRGB, uint8_t hueOffset)
-{
-  CHSV colorHSV;
-  // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( leds, numLeds, 10);
-  int pos = random16(numLeds);
-  colorHSV = rgb2hsv_approximate(colorRGB);
-  leds[pos] += CHSV(colorHSV.hue - hueOffset / 2 + random8(hueOffset), 255, 255);
-}
-
-void staticRainbow(uint8_t hueOffset)
-{
-  // built-in static FastLED rainbow
-  fill_rainbow(leds, numLeds, 0, hueOffset / 12 + 1);
 }
 
 #endif // EFFECTS_H
