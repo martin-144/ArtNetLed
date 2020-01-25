@@ -50,21 +50,25 @@ if(i++ == numLeds) {i = 0;}
 
 void meteorRainRows(CRGB colorRGB, uint8_t fadeRows)
 {
-    fadeRows = fadeRows / levels + 1;
+    fadeRows = fadeRows / levels;
+
+    // setAll(0);
+
     static uint8_t row;
+
+    fadeToBlackBy(leds, numLeds, 128);
 
     for(uint8_t n = 0; n <= ledsPerLevel; n++)
     {
-      leds[row * ledsPerLevel + n] = colorRGB;
-
       for(uint8_t fr = 0; fr <= fadeRows; fr++)
       {
-        if(random(15)>5)
+        leds[(row + fr) * ledsPerLevel + n] = colorRGB;
+
+        if(random(15)>5) // && (fr <= row))
         {
-          leds[(row - fr) * ledsPerLevel + n].fadeToBlackBy(255 / fadeRows + 128);
+          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(240);
         }
       }
-      leds[(row - fadeRows) * ledsPerLevel + n] = 0;
     }
     if(row++ == levels) {row = 0;}
 }

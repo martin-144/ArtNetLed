@@ -5,24 +5,18 @@
 #include <inttypes.h>
 #include <stdint.h>
 
-// ArtNet Settings, defined in artnet.h
-extern uint8_t artnetLevels;
-extern uint8_t artnetLevelsRaw;
-extern uint16_t dmxChannel;
-
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
 // Higher number = diameter of the torch gets larger
 // Ast 8
 // Lamp 14
-const uint8_t ledsPerLevel = 8;
+const uint8_t ledsPerLevel = 14;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint8_t levels = 26;
-uint8_t artnetLevels;
+const uint8_t levels = 28;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;
@@ -49,14 +43,14 @@ const bool swapXY = false;
 // const bool yReversed = false; // Y reversed
 // const bool alternating = false; // direction changes after every row
 
+// global parameters
 const uint16_t numLeds = ledsPerLevel * levels; // total number of LEDs
 
-CRGB leds[numLeds];
-
-// global parameters
 uint8_t currentEnergy[numLeds]; // current energy level
 uint8_t nextEnergy[numLeds]; // next energy level
 uint8_t energyMode[numLeds]; // mode how energy is calculated for this point
+
+CRGB leds[numLeds];
 
 enum {
     torch_passive = 0, // just environment, glow from nearby radiation
@@ -84,8 +78,8 @@ uint8_t spark_max = 255; // 0..255
 uint8_t spark_tfr = 40; // 0..256 how much energy is transferred up for a spark per cycle
 uint8_t spark_cap = 200; // 0..255: spark cells: how much energy is retained from previous cycle
 
-uint8_t up_rad = 35; // up radiation
-uint8_t side_rad = 35; // sidewards radiationc//
+uint8_t up_rad = 20; // up radiation
+uint8_t side_rad = 20; // sidewards radiationc//
 uint8_t heat_cap = 0; // 0..255: passive cells: how much energy is retained from previous cycle
 
 uint8_t red_bg = 0;
@@ -114,8 +108,9 @@ void setColor(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGre
 void setColorDimmedXY(uint16_t aX, uint16_t aY, byte aRed, byte aGreen, byte aBlue, byte aBrightness);
 void setColorDimmed(struct CRGB* leds, uint16_t aLedNumber, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aBrightness);
 
-void calcNextEnergy()
+void calcNextEnergy(uint8_t artnetLevels)
 {
+    uint8_t burnLevels = artnetLevels * levels / 255;
     int i = 0;
     for (int y=0; y<levels; y++) {
         for (int x=0; x<ledsPerLevel; x++) {
@@ -126,11 +121,11 @@ void calcNextEnergy()
                     // loose transfer up energy as long as the is any
                     reduce(&e, spark_tfr, 0);
                     // cell above is temp spark, sucking up energy from this cell until empty
-                    if (y < artnetLevels-1) {
+                    if (y < burnLevels-1) {
                         energyMode[i+ledsPerLevel] = torch_spark_temp;
                     }
                     // 20191206 by Martin; If artnetlevels < ledsPerLevel set LEDs above off
-                    else if (y > artnetLevels-1) {
+                    else if (y > burnLevels-1) {
                         energyMode[i+ledsPerLevel] = torch_passive;
                     }
                     break;

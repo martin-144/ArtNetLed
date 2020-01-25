@@ -20,11 +20,11 @@ WiFiUDP Udp;
 WiFiManager wifiManager;
 
 // Local fastLed Ports
-const uint8_t fastLedPin = D8;
+const uint8_t fastLedPin = D8; // Equals 0x0f
 
 // Blue LED blink interval
 const int interval = 500;
-const int ledPin = 0x02;
+const int ledPin = D4; // Equals 0x02
 
 // Flash button
 const int flashButtonPin = 0x00;
@@ -72,6 +72,25 @@ void setup()
   // LED on while connecting to WLAN
   digitalWrite(ledPin, 0);
 
+  // Find out which board we use
+  // If D5 == true, we have the WEMOS
+  // If D5 == false, we have the nodeMCU
+
+  pinMode(D5, INPUT_PULLUP);
+
+  if(digitalRead(D5) == true)
+  {
+    // ledsPerLevel = 14;
+    // levels = 28;
+    Serial.printf("Found WEMOS Board, assuming ledsPerLevel = %d, levels = %d\n", ledsPerLevel, levels);
+  }
+  else
+  {
+    // ledsPerLevel = 8;
+    // levels = 26;
+    Serial.printf("Found NodeMCU Board, assuming ledsPerLevel = %d, levels = %d\n", ledsPerLevel, levels);
+  }
+
   // Start WiFiMnager
   wifiManagerStart();
 
@@ -94,7 +113,7 @@ void setup()
   resetEnergy();
 
   // disable FastLED dither to prevent flickering
-  FastLED.setDither(0);
+  // FastLED.setDither(0);
 
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");
@@ -115,7 +134,7 @@ void loop()
     {
 
       case 0 ... 19:
-        // Serial.println("Effect: No Effect");
+        Serial.println("Effect: No Effect");
         FastLED.clear();
         break;
 
@@ -129,7 +148,7 @@ void loop()
         // param1 = fadeheight
         // Serial.println("Effect: Fire");
         injectRandom();
-        calcNextEnergy();
+        calcNextEnergy(artnetTorchParams.param1);
         calcNextColors(artnetTorchParams.colorRGB);
         break;
 
@@ -139,7 +158,6 @@ void loop()
         break;
 
       case 80 ... 99:
-        // param1 = faderows
         // Serial.println("Effect: MeteorRainRows");
         meteorRainRows(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
@@ -160,7 +178,7 @@ void loop()
         break;
 
       default:
-        // Serial.println("Effect: Not Used");
+        Serial.println("Effect: Not Used");
         setAll(CRGB(20, 0, 0));
         break;
     }

@@ -20,8 +20,6 @@
 #define ART_DMX_START 17
 
 extern WiFiUDP Udp;
-extern uint8_t brightness;
-extern uint16_t dmxChannel;
 extern const int ledPin;
 extern const uint8_t levels;
 extern const uint8_t dimmingLevel;
@@ -218,9 +216,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artnetTorchParams.param1 = artnet.packet[ART_DMX_START + artnet.dmxChannel + 6];
       artnetTorchParams.param2 = artnet.packet[ART_DMX_START + artnet.dmxChannel + 7];
 
-      artnetLevels = artnetTorchParams.param1 * levels / 255;
-
-      Serial.printf("Brightness: %d, Torch Level: %d, Torch Level Raw: %d\n", artnetTorchParams.brightness, artnetLevels, artnetTorchParams.param1);
       digitalWrite(ledPin, 1);  // Unlight LED
     }
   }
