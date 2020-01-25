@@ -134,7 +134,7 @@ void loop()
     {
 
       case 0 ... 19:
-        Serial.println("Effect: No Effect");
+        // Serial.println("Effect: No Effect");
         FastLED.clear();
         break;
 
@@ -163,22 +163,27 @@ void loop()
         break;
 
       case 100 ... 119:
+        // Serial.println("Effect: MeteorRainRows");
+        sparkleUp(artnetTorchParams.colorRGB, artnetTorchParams.param1);
+        break;
+
+      case 120 ... 139:
         // Serial.println("Effect: Confetti");
         confetti(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
 
-      case 120 ... 139:
+      case 140 ... 159:
         // Serial.println("Effect: Static Rainbow");
         staticRainbow(artnetTorchParams.param1);
         break;
 
-      case 140 ... 159:
+      case 160 ... 179:
         // Serial.println("Effect: Plasma");
         plasma(artnetTorchParams.param1);
         break;
 
       default:
-        Serial.println("Effect: Not Used");
+        // Serial.println("Effect: Not Used");
         setAll(CRGB(20, 0, 0));
         break;
     }

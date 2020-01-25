@@ -73,6 +73,29 @@ void meteorRainRows(CRGB colorRGB, uint8_t fadeRows)
     if(row++ == levels) {row = 0;}
 }
 
+void sparkleUp(CRGB colorRGB, uint8_t fadeRows)
+{
+    fadeRows = fadeRows / levels;
+
+    setAll(0);
+
+    static uint8_t row;
+
+    for(uint8_t n = 0; n <= ledsPerLevel; n++)
+    {
+      for(uint8_t fr = 0; fr <= fadeRows; fr++)
+      {
+        leds[(row + fr) * ledsPerLevel + n] = colorRGB;
+
+        if(random(15)>5) // && (fr <= row))
+        {
+          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(240);
+        }
+      }
+    }
+    if(row++ == levels) {row = 0;}
+}
+
 
 void sparkle(CRGB colorRGB)
 {
