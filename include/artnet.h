@@ -27,15 +27,15 @@ extern const uint8_t dimmingLevel;
 struct artnet_dmx_params_s {
   IPAddress broadcast = {255, 255, 255, 255};
   uint16_t opcode;
+  uint16_t universe;
+  uint16_t dmxLength;
+  uint16_t dmxChannel = 1;
+  uint16_t dmxDataLength;
   uint8_t packet[MAX_BUFFER_ARTNET];
-  uint8_t universe;
-  uint8_t dmxChannel = 1;
-  uint8_t dmxLength;
-  uint8_t dmxDataLength;
   uint8_t node_ip_address[4];
   uint8_t id[8];
   uint8_t numports = 1;
-};
+} __attribute__((packed));
 struct artnet_dmx_params_s artnet;
 
 struct artnet_torch_params_s {
@@ -45,7 +45,7 @@ struct artnet_torch_params_s {
   uint8_t speed;
   uint8_t param1;
   uint8_t param2;
-};
+} __attribute__((packed));
 struct artnet_torch_params_s artnetTorchParams;
 
 struct art_poll_reply_s {
@@ -121,9 +121,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     if (artnet.opcode == ART_POLL) // ArtNet OpPoll received
     {
-      Serial.printf("ArtNet OpPoll received from ");
+      Serial.print("ArtNet OpPoll received from ");
       Serial.print(Udp.remoteIP());
-      Serial.printf(":");
+      Serial.print(":");
       Serial.println(Udp.remotePort());
 
       IPAddress local_ip = WiFi.localIP();
@@ -194,7 +194,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       Udp.endPacket();
     }
 
-    if(artnet.opcode == ART_DMX) // Test for Art-Net DMX packet
+    else if(artnet.opcode == ART_DMX) // Test for Art-Net DMX packet
     {
       /* Artnet Channel mapping:
          1: brightness;

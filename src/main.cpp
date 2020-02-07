@@ -182,6 +182,11 @@ void loop()
         plasma(artnetTorchParams.param1);
         break;
 
+      case 180 ... 199:
+        // Serial.println("Effect: Juggle");
+        juggle(artnetTorchParams.colorRGB, artnetTorchParams.param1);
+        break;
+
       default:
         // Serial.println("Effect: Not Used");
         setAll(CRGB(20, 0, 0));

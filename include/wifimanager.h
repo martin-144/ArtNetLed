@@ -63,7 +63,7 @@ void wifiManagerStart()
   ---------------------------------------------------------------------
   */
 
-  std::vector<const char*> menu = {"wifi","wifinoscan","param","info","close","sep","exit","sep","restart","erase"};
+  std::vector<const char*> menu = {"wifi", "wifinoscan", "param", "info", "update", "close", "sep", "exit", "sep", "restart", "erase"};
   wifiManager.setMenu(menu); // custom menu, pass vector
 
   // set custom ip for portal

@@ -16,7 +16,7 @@ const uint8_t ledsPerLevel = 14;
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint8_t levels = 28;
+const uint8_t levels = 26;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;
