@@ -14,7 +14,6 @@ TBlendType currentBlending = LINEARBLEND;
 
 void setPixel(int Pixel, CRGB colorRGB)
 {
-   // FastLED
    leds[Pixel] = colorRGB;
 }
 
@@ -50,11 +49,9 @@ if(i++ == numLeds) {i = 0;}
 
 void meteorRainRows(CRGB colorRGB, uint8_t fadeRows)
 {
-    fadeRows = fadeRows / levels;
-
-    // setAll(0);
-
     static uint8_t row;
+
+    fadeRows = fadeRows / levels;
 
     fadeToBlackBy(leds, numLeds, 128);
 
@@ -67,12 +64,39 @@ void meteorRainRows(CRGB colorRGB, uint8_t fadeRows)
 
         if(random(15)>5) // && (fr <= row))
         {
-          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(250);
+          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(220);
         }
       }
     }
     if(row++ == levels) {row = 0;}
 }
+
+void meteorRainRainbow(CRGB colorRGB, uint8_t hueOffset)
+{
+    uint8_t fadeRows = 10;
+    CHSV colorHSV = rgb2hsv_approximate(colorRGB);
+
+    static uint8_t row;
+
+    fadeToBlackBy(leds, numLeds, 64);
+
+    for(uint8_t n = 0; n <= ledsPerLevel; n++)
+    {
+      if(fadeRows >= row) fadeRows = row;
+      for(uint8_t fr = 0; fr <= fadeRows; fr++)
+      {
+        // leds[(row + fr) * ledsPerLevel + n] = colorRGB;
+        leds[(row + fr) * ledsPerLevel + n] = CHSV(colorHSV.hue + fr * hueOffset / (fadeRows + 1), 255, 255);
+
+        if(random(15)>5) // && (fr <= row))
+        {
+          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(220);
+        }
+      }
+    }
+    if(row++ == levels) {row = 0;}
+}
+
 
 // It's like meteorRainRows, but without the trails
 void sparkleUp(CRGB colorRGB, uint8_t fadeRows)
@@ -92,7 +116,7 @@ void sparkleUp(CRGB colorRGB, uint8_t fadeRows)
 
         if(random(15)>5) // && (fr <= row))
         {
-          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(240);
+          leds[(row + fr) * ledsPerLevel + n].fadeToBlackBy(220);
         }
       }
     }
@@ -161,8 +185,8 @@ void juggle(CRGB colorRGB, uint8_t hueOffset)
 {
   CHSV colorHSV = rgb2hsv_approximate(colorRGB);
 
-  static uint8_t    numdots =   1; // Number of dots in use.
-  static uint8_t   faderate =   2; // How long should the trails be. Very low value = longer trails.
+  static uint8_t    numdots =   8; // Number of dots in use.
+  static uint8_t   faderate =   250; // How long should the trails be. Very low value = longer trails.
   static uint8_t     hueinc =  255 / numdots - 1; // Incremental change in hue between each dot.
   static uint8_t    thishue =   0; // Starting hue.
   static uint8_t     curhue =   0; // The current hue
@@ -177,7 +201,7 @@ void juggle(CRGB colorRGB, uint8_t hueOffset)
     lastSecond = secondHand;
     secondHand = 0;
     switch (secondHand) {
-      case  0: numdots = 1; basebeat = 20; hueinc = 16; faderate = 2; thishue = 0; break; // You can change values here, one at a time , or altogether.
+      case  0: numdots = 1; basebeat = 20; hueinc = 16; faderate = 10; thishue = 0; break; // You can change values here, one at a time , or altogether.
       case 10: numdots = 4; basebeat = 10; hueinc = 16; faderate = 8; thishue = 128; break;
       case 20: numdots = 8; basebeat =  3; hueinc =  0; faderate = 8; thishue = random8(); break; // Only gets called once, and not continuously for the next several seconds. Therefore, no rainbows.
       case 30: break;

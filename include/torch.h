@@ -16,7 +16,7 @@ const uint8_t ledsPerLevel = 14;
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint8_t levels = 26;
+const uint8_t levels = 28;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;
@@ -78,7 +78,7 @@ uint8_t spark_max = 255; // 0..255
 uint8_t spark_tfr = 40; // 0..256 how much energy is transferred up for a spark per cycle
 uint8_t spark_cap = 200; // 0..255: spark cells: how much energy is retained from previous cycle
 
-uint8_t up_rad = 20; // up radiation
+uint8_t up_rad = 30; // up radiation
 uint8_t side_rad = 20; // sidewards radiationc//
 uint8_t heat_cap = 0; // 0..255: passive cells: how much energy is retained from previous cycle
 

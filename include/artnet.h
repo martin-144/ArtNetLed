@@ -35,7 +35,7 @@ struct artnet_dmx_params_s {
   uint8_t node_ip_address[4];
   uint8_t id[8];
   uint8_t numports = 1;
-} __attribute__((packed));
+};
 struct artnet_dmx_params_s artnet;
 
 struct artnet_torch_params_s {
@@ -45,7 +45,7 @@ struct artnet_torch_params_s {
   uint8_t speed;
   uint8_t param1;
   uint8_t param2;
-} __attribute__((packed));
+};
 struct artnet_torch_params_s artnetTorchParams;
 
 struct art_poll_reply_s {
@@ -84,7 +84,7 @@ struct art_poll_reply_s {
   uint8_t  status2;
   uint8_t  filler[26];
 } __attribute__((packed));
-struct art_poll_reply_s ArtPollReply;
+struct art_poll_reply_s artPollReply;
 
 void recieveUdp()
 /*
@@ -134,63 +134,63 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artnet.node_ip_address[3] = local_ip[3];
 
       sprintf((char *)artnet.id, "Art-Net");
-      memcpy(ArtPollReply.id, artnet.id, sizeof(ArtPollReply.id));
-      memcpy(ArtPollReply.ip, artnet.node_ip_address, sizeof(ArtPollReply.ip));
+      memcpy(artPollReply.id, artnet.id, sizeof(artPollReply.id));
+      memcpy(artPollReply.ip, artnet.node_ip_address, sizeof(artPollReply.ip));
 
-      ArtPollReply.opCode = ART_POLL_REPLY;
-      ArtPollReply.port =  ART_NET_PORT;
+      artPollReply.opCode = ART_POLL_REPLY;
+      artPollReply.port =  ART_NET_PORT;
 
-      memset(ArtPollReply.goodinput, 0x08, artnet.numports);
-      memset(ArtPollReply.goodoutput, 0x80, artnet.numports);
-      memset(ArtPollReply.porttypes, 0x00, 1);
-      memset(ArtPollReply.porttypes, 0xc0, 1);
+      memset(artPollReply.goodinput, 0x08, artnet.numports);
+      memset(artPollReply.goodoutput, 0x80, artnet.numports);
+      memset(artPollReply.porttypes, 0x00, 1);
+      memset(artPollReply.porttypes, 0xc0, 1);
 
       uint8_t shortname [18] = {0};
       uint8_t longname [64] = {0};
       sprintf((char *)shortname, "ArtNet Torch");
       sprintf((char *)longname, "Art-Net -> Arduino Bridge");
-      memcpy(ArtPollReply.shortname, shortname, sizeof(shortname));
-      memcpy(ArtPollReply.longname, longname, sizeof(longname));
+      memcpy(artPollReply.shortname, shortname, sizeof(shortname));
+      memcpy(artPollReply.longname, longname, sizeof(longname));
 
-      ArtPollReply.estaman[0] = 0;
-      ArtPollReply.estaman[1] = 0;
-      ArtPollReply.verH       = 1;
-      ArtPollReply.ver        = 0;
-      ArtPollReply.subH       = 0;
-      ArtPollReply.sub        = 0;
-      ArtPollReply.oemH       = 0;
-      ArtPollReply.oem        = 0xFF;
-      ArtPollReply.ubea       = 0;
-      ArtPollReply.status     = 0xd0;
-      ArtPollReply.swvideo    = 0;
-      ArtPollReply.swmacro    = 0;
-      ArtPollReply.swremote   = 0;
-      ArtPollReply.style      = 0;
+      artPollReply.estaman[0] = 0;
+      artPollReply.estaman[1] = 0;
+      artPollReply.verH       = 1;
+      artPollReply.ver        = 0;
+      artPollReply.subH       = 0;
+      artPollReply.sub        = 0;
+      artPollReply.oemH       = 0;
+      artPollReply.oem        = 0xFF;
+      artPollReply.ubea       = 0;
+      artPollReply.status     = 0xd0;
+      artPollReply.swvideo    = 0;
+      artPollReply.swmacro    = 0;
+      artPollReply.swremote   = 0;
+      artPollReply.style      = 0;
 
-      ArtPollReply.numports[1] = (artnet.numports >> 8) & 0xff;
-      ArtPollReply.numports[0] = artnet.numports & 0xff;
-      ArtPollReply.status2   = 0x08;
+      artPollReply.numports[1] = (artnet.numports >> 8) & 0xff;
+      artPollReply.numports[0] = artnet.numports & 0xff;
+      artPollReply.status2   = 0x08;
 
-      ArtPollReply.bindip[0] = artnet.node_ip_address[0];
-      ArtPollReply.bindip[1] = artnet.node_ip_address[1];
-      ArtPollReply.bindip[2] = artnet.node_ip_address[2];
-      ArtPollReply.bindip[3] = artnet.node_ip_address[3];
+      artPollReply.bindip[0] = artnet.node_ip_address[0];
+      artPollReply.bindip[1] = artnet.node_ip_address[1];
+      artPollReply.bindip[2] = artnet.node_ip_address[2];
+      artPollReply.bindip[3] = artnet.node_ip_address[3];
 
       uint8_t swin[4]  = {0x01,0x02,0x03,0x04};
       uint8_t swout[4] = {0x01,0x02,0x03,0x04};
 
       for(uint8_t i = 0; i < artnet.numports; i++)
       {
-        ArtPollReply.swout[i] = swout[i];
-        ArtPollReply.swin[i] = swin[i];
+        artPollReply.swout[i] = swout[i];
+        artPollReply.swin[i] = swin[i];
       }
 
-      sprintf((char *)ArtPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
+      sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
       Serial.println("Sending ArtNet OpPollReply Packet...");
 
       Udp.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
-      Udp.write((uint8_t *)&ArtPollReply, sizeof(ArtPollReply));
+      Udp.write((uint8_t *)&artPollReply, sizeof(artPollReply));
       Udp.endPacket();
     }
 

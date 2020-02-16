@@ -76,6 +76,7 @@ void setup()
   // If D5 == true, we have the WEMOS
   // If D5 == false, we have the nodeMCU
 
+  // Therefore we activate the pullup on D5 and set a jumper to GND on the NodeMCU board
   pinMode(D5, INPUT_PULLUP);
 
   if(digitalRead(D5) == true)
@@ -98,7 +99,7 @@ void setup()
   // artnet.dmxChannel_int = artnet.dmxChannel.toInt();
   // artnet.universe_int = artnet.universe.toInt();
 
-  WiFi.mode(WIFI_STA);
+  // wifiManager.resetSettings();
 
   // LED off after connecting to WLAN
   digitalWrite(ledPin, 1);
@@ -113,11 +114,10 @@ void setup()
   resetEnergy();
 
   // disable FastLED dither to prevent flickering
-  // FastLED.setDither(0);
+  FastLED.setDither(0);
 
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");
-
 }
 
 void loop()
@@ -163,26 +163,31 @@ void loop()
         break;
 
       case 100 ... 119:
-        // Serial.println("Effect: MeteorRainRows");
-        sparkleUp(artnetTorchParams.colorRGB, artnetTorchParams.param1);
+        // Serial.println("Effect: MeteorRainRainbow");
+        meteorRainRainbow(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
 
       case 120 ... 139:
+        // Serial.println("Effect: SparkleUp");
+        sparkleUp(artnetTorchParams.colorRGB, artnetTorchParams.param1);
+        break;
+
+      case 140 ... 159:
         // Serial.println("Effect: Confetti");
         confetti(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
 
-      case 140 ... 159:
+      case 160 ... 179:
         // Serial.println("Effect: Static Rainbow");
         staticRainbow(artnetTorchParams.param1);
         break;
 
-      case 160 ... 179:
+      case 180 ... 199:
         // Serial.println("Effect: Plasma");
         plasma(artnetTorchParams.param1);
         break;
 
-      case 180 ... 199:
+      case 200 ... 219:
         // Serial.println("Effect: Juggle");
         juggle(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;

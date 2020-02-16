@@ -7,7 +7,7 @@
 
 void spiffsRead()
 {
-  Serial.println("*SF: Mounting SPIFFS file system...");
+  Serial.println("*SF: Mounting SPIFFS file system");
 
   if (SPIFFS.begin())
   {
@@ -15,7 +15,7 @@ void spiffsRead()
     if (SPIFFS.exists("/config.json"))
     {
       //file exists, reading and loading
-      Serial.println("*SF: Reading config file...");
+      Serial.println("*SF: Reading config file");
       File configFile = SPIFFS.open("/config.json", "r");
       if (configFile)
       {
@@ -40,7 +40,11 @@ void spiffsRead()
         }
       }
       configFile.close();
-      Serial.printf("*SF: Done.");
+      Serial.printf("*SF: Done.\n");
+    }
+    else
+    {
+      Serial.println("*SF: Config file does not exist: ");
     }
   }
   else
@@ -57,7 +61,7 @@ void spiffsWrite()
     doc["universe"] = String(artnet.universe);
     doc["dmxchannel"] = String(artnet.dmxChannel);
 
-    Serial.println("*SF: SPIFFS FS trying to save params...");
+    Serial.println("*SF: SPIFFS FS trying to save params");
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)

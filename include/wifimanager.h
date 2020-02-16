@@ -35,7 +35,7 @@ void saveParamsCallback()
 
 void wifiManagerStart()
 {
-  WiFi.mode(WIFI_STA);
+  // WiFi.mode(WIFI_STA);
 
   // Read configuration from SPIFFS FS
   spiffsRead();
