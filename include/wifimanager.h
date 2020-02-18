@@ -28,7 +28,7 @@ String getParam(String name)
 void saveParamsCallback()
 {
   Serial.println("*WM: Should save params");
-  artnet.universe = getParam("universe").toInt();
+  artnet.listenUniverse = getParam("universe").toInt();
   artnet.dmxChannel = getParam("dmxchannel").toInt();
   spiffsWrite();
 }
@@ -51,7 +51,7 @@ void wifiManagerStart()
 
   // Adding an additional config on the WIFI manager webpage for the universe and DMX channel
   WiFiManagerParameter customText("<p><h3>ArtNet Parameters</h3></p>");
-  WiFiManagerParameter customUniverse("universe", "Universe", String(artnet.universe).c_str() , 3, "type='number'");
+  WiFiManagerParameter customUniverse("universe", "Universe", String(artnet.listenUniverse).c_str() , 3, "type='number'");
   WiFiManagerParameter customDmxChannel("dmxchannel", "DMX Channel", String(artnet.dmxChannel).c_str() , 3, "type='number'");
   wifiManager.addParameter(&customText);
   wifiManager.addParameter(&customUniverse);

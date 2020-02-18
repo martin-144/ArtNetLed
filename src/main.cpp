@@ -46,9 +46,6 @@ void onPressedForDuration()
   wifiManager.resetSettings();
   ESP.reset();
   ESP.restart();
-
-  // LED off after connecting to WLAN
-  digitalWrite(ledPin, 1);
 }
 
 // Main program

@@ -27,7 +27,7 @@ void spiffsRead()
         if (!error)
         {
           artnet.dmxChannel = int(doc["dmxchannel"]);
-          artnet.universe = int(doc["universe"]);
+          artnet.listenUniverse = int(doc["universe"]);
           Serial.printf("*SF: Parsed Json: ");
           serializeJson(doc, Serial);
           Serial.println();
@@ -58,7 +58,7 @@ void spiffsWrite()
 {
     Serial.println("*SF: Should save params");
     DynamicJsonDocument doc(1024);
-    doc["universe"] = String(artnet.universe);
+    doc["universe"] = String(artnet.listenUniverse);
     doc["dmxchannel"] = String(artnet.dmxChannel);
 
     Serial.println("*SF: SPIFFS FS trying to save params");

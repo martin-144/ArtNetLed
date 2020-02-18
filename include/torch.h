@@ -10,13 +10,13 @@
 // Higher number = diameter of the torch gets larger
 // Ast 8
 // Lamp 14
-const uint8_t ledsPerLevel = 14;
+const uint8_t ledsPerLevel = 8;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
 // Ast 26
 // Lamp 28
-const uint8_t levels = 28;
+const uint8_t levels = 26;
 
 // Dim the flame when going below this number of levels
 const uint8_t dimmingLevel = 4;

@@ -28,13 +28,14 @@ struct artnet_dmx_params_s {
   IPAddress broadcast = {255, 255, 255, 255};
   uint16_t opcode;
   uint16_t universe;
+  uint16_t listenUniverse;
   uint16_t dmxLength;
   uint16_t dmxChannel = 1;
   uint16_t dmxDataLength;
+  uint16_t numports = 1;
   uint8_t packet[MAX_BUFFER_ARTNET];
   uint8_t node_ip_address[4];
   uint8_t id[8];
-  uint8_t numports = 1;
 };
 struct artnet_dmx_params_s artnet;
 
@@ -140,10 +141,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.opCode = ART_POLL_REPLY;
       artPollReply.port =  ART_NET_PORT;
 
-      memset(artPollReply.goodinput, 0x08, artnet.numports);
-      memset(artPollReply.goodoutput, 0x80, artnet.numports);
-      memset(artPollReply.porttypes, 0x00, 1);
-      memset(artPollReply.porttypes, 0xc0, 1);
+      memset(artPollReply.goodinput, 0x80, 4);
+      memset(artPollReply.goodoutput, 0x80, 4);
+      memset(artPollReply.porttypes, 0xc0, 4);
 
       uint8_t shortname [18] = {0};
       uint8_t longname [64] = {0};
@@ -152,8 +152,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       memcpy(artPollReply.shortname, shortname, sizeof(shortname));
       memcpy(artPollReply.longname, longname, sizeof(longname));
 
-      artPollReply.estaman[0] = 0;
-      artPollReply.estaman[1] = 0;
+      artPollReply.estaman[1] = 0x00;
+      artPollReply.estaman[0] = 0x00;
       artPollReply.verH       = 1;
       artPollReply.ver        = 0;
       artPollReply.subH       = 0;
@@ -166,9 +166,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.swmacro    = 0;
       artPollReply.swremote   = 0;
       artPollReply.style      = 0;
-
-      artPollReply.numports[1] = (artnet.numports >> 8) & 0xff;
-      artPollReply.numports[0] = artnet.numports & 0xff;
+      artPollReply.numports[0] = (artnet.numports >> 8) & 0xff;
+      artPollReply.numports[1] = artnet.numports & 0xff;
       artPollReply.status2   = 0x08;
 
       artPollReply.bindip[0] = artnet.node_ip_address[0];
@@ -176,10 +175,10 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.bindip[2] = artnet.node_ip_address[2];
       artPollReply.bindip[3] = artnet.node_ip_address[3];
 
-      uint8_t swin[4]  = {0x01,0x02,0x03,0x04};
-      uint8_t swout[4] = {0x01,0x02,0x03,0x04};
+      uint8_t swin[4]  = {0x01, 0x02, 0x03, 0x03};
+      uint8_t swout[4] = {0x01, 0x02, 0x03, 0x04};
 
-      for(uint8_t i = 0; i < artnet.numports; i++)
+      for(uint8_t i = 0; i < 4; i++)
       {
         artPollReply.swout[i] = swout[i];
         artPollReply.swin[i] = swin[i];
@@ -196,6 +195,11 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     else if(artnet.opcode == ART_DMX) // Test for Art-Net DMX packet
     {
+      Serial.printf("ArtNet data received, Universe %d, DMX length %d. ", artnet.universe, artnet.dmxLength);
+      Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
+
+      if(artnet.universe != artnet.listenUniverse)
+      return;
       /* Artnet Channel mapping:
          1: brightness;
          2,3,4: colorRGB;
@@ -204,8 +208,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
          7: param1;
          8: param2;
       */
-
-      Serial.printf("ArtNet data received, Universe %d, DMX length %d\n", artnet.universe, artnet.dmxLength);
 
       artnetTorchParams.brightness = artnet.packet[ART_DMX_START + artnet.dmxChannel];
       artnetTorchParams.colorRGB = CRGB(artnet.packet[ART_DMX_START + artnet.dmxChannel + 1],
