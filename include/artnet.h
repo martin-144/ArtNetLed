@@ -13,6 +13,8 @@
 #define ART_POLL_REPLY 0x2100
 #define ART_DMX 0x5000
 #define ART_SYNC 0x5200
+#define ART_IPPROG 0xf800
+#define ART_ADDRESS 0x6000
 // Buffers
 #define MAX_BUFFER_ARTNET 530
 // Packet
@@ -122,7 +124,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     if (artnet.opcode == ART_POLL) // ArtNet OpPoll received
     {
-      Serial.print("ArtNet OpPoll received from ");
+      Serial.print("ArtNet [OpPoll] packet received from ");
       Serial.print(Udp.remoteIP());
       Serial.print(":");
       Serial.println(Udp.remotePort());
@@ -141,9 +143,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.opCode = ART_POLL_REPLY;
       artPollReply.port =  ART_NET_PORT;
 
-      memset(artPollReply.goodinput, 0x80, 4);
+      memset(artPollReply.goodinput, 0x00, 4);
       memset(artPollReply.goodoutput, 0x80, 4);
-      memset(artPollReply.porttypes, 0xc0, 4);
+      memset(artPollReply.porttypes, 0b01000101, 4);
 
       uint8_t shortname [18] = {0};
       uint8_t longname [64] = {0};
@@ -152,8 +154,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       memcpy(artPollReply.shortname, shortname, sizeof(shortname));
       memcpy(artPollReply.longname, longname, sizeof(longname));
 
-      artPollReply.estaman[1] = 0x00;
-      artPollReply.estaman[0] = 0x00;
+      artPollReply.estaman[1] = 'K';
+      artPollReply.estaman[0] = 'B';
       artPollReply.verH       = 1;
       artPollReply.ver        = 0;
       artPollReply.subH       = 0;
@@ -175,7 +177,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.bindip[2] = artnet.node_ip_address[2];
       artPollReply.bindip[3] = artnet.node_ip_address[3];
 
-      uint8_t swin[4]  = {0x01, 0x02, 0x03, 0x03};
+      uint8_t swin[4]  = {0x01, 0x02, 0x03, 0x04};
       uint8_t swout[4] = {0x01, 0x02, 0x03, 0x04};
 
       for(uint8_t i = 0; i < 4; i++)
@@ -186,7 +188,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
-      Serial.println("Sending ArtNet OpPollReply Packet...");
+      Serial.println("ArtNet [OpPollReply] sending packet...");
 
       Udp.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
       Udp.write((uint8_t *)&artPollReply, sizeof(artPollReply));
@@ -195,7 +197,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     else if(artnet.opcode == ART_DMX) // Test for Art-Net DMX packet
     {
-      Serial.printf("ArtNet data received, Universe %d, DMX length %d. ", artnet.universe, artnet.dmxLength);
+      Serial.printf("ArtNet [OpDmx] packet received, Universe %d, DMX length %d. ", artnet.universe, artnet.dmxLength);
       Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
 
       if(artnet.universe != artnet.listenUniverse)
@@ -220,6 +222,24 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       digitalWrite(ledPin, 1);  // Unlight LED
     }
+
+    else if (artnet.opcode == ART_IPPROG)// Another Artnet Packed received
+    {
+     Serial.printf("ArtNet [OpIpProg] packet received, OpCode %0000x, ", artnet.opcode);
+     Serial.printf("NOT IMPLEMENTED.\n");
+    }
+
+    else if (artnet.opcode == ART_ADDRESS)// Another Artnet Packed received
+    {
+     Serial.printf("ArtNet [OpAddress] packet received, OpCode %0000x, ", artnet.opcode);
+     Serial.printf("NOT IMPLEMENTED.\n");
+    }
+
+    else  // Another Artnet Packed received
+    {
+     Serial.printf("ArtNet [Unknown] packet received, OpCode %0000x\n", artnet.opcode);
+    }
+
   }
 }
 
