@@ -14,8 +14,9 @@
 #define ART_POLL_REPLY 0x2100
 #define ART_DMX 0x5000
 #define ART_SYNC 0x5200
-#define ART_IPPROG 0xf800
+#define ART_IP_PROG 0xf800
 #define ART_ADDRESS 0x6000
+
 
 // Buffers
 #define MAX_BUFFER_ARTNET 530
@@ -31,6 +32,7 @@ extern const uint8_t dimmingLevel;
 
 struct artnet_dmx_params_s {
   IPAddress broadcast = {255, 255, 255, 255};
+  IPAddress unicast;
   uint16_t opcode;
   uint16_t universe;
   uint16_t listenUniverse;
@@ -71,7 +73,7 @@ struct art_poll_reply_s {
   uint8_t  shortname[18];
   uint8_t  longname[64];
   uint8_t  nodereport[64];
-  uint8_t  numports[2];
+  uint8_t  numports[2]; // Don't change it here! Here is Number of Bytes.
   uint8_t  porttypes[4]; //max of 4 ports per node
   uint8_t  goodinput[4] = {0};
   uint8_t  goodoutput[4] = {0};
@@ -186,9 +188,12 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.bindip[2] = artnet.node_ip_address[2];
       artPollReply.bindip[3] = artnet.node_ip_address[3];
 
-      uint8_t swin[4]  = {0x00, 0x00, 0x00, 0x00};
-      uint8_t swout[4] = {0x00, 0x00, 0x00, 0x00}; // Each Hex number is the Universe the output will listen on
-      swout[0] = artnet.listenUniverse; // We set it here
+      artnet.listenUniverse = 2;
+
+      uint8_t swin[4]  = {0}; // Each Hex number is the Universe the input will listen on
+      uint8_t swout[4] = {0}; // Each Hex number is the Universe the output will listen on
+      swout[0] = artnet.listenUniverse; // We set it here for channel 1
+      swin[0] = artnet.listenUniverse; // We set it here for channel 1
 
       for(uint8_t i = 0; i < 4; i++)
       {
@@ -232,7 +237,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     }
 
-    else if (artnet.opcode == ART_IPPROG) // Artnet OpIpProg packet received
+    else if (artnet.opcode == ART_IP_PROG) // Artnet OpIpProg packet received
     {
      Serial.printf("ArtNet [OpIpProg] packet received, OpCode %0000x, ", artnet.opcode);
      Serial.printf("NOT IMPLEMENTED.\n");
