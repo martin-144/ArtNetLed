@@ -236,19 +236,19 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     else if (artnet.opcode == ART_IP_PROG) // Artnet OpIpProg packet received
     {
-     Serial.printf("ArtNet [OpIpProg] packet received, OpCode %0000x, ", artnet.opcode);
+     Serial.printf("ArtNet [OpIpProg] packet received, OpCode %#06x, ", artnet.opcode);
      Serial.printf("NOT IMPLEMENTED.\n");
     }
 
     else if (artnet.opcode == ART_ADDRESS) // Artnet OpAdress packet received
     {
-     Serial.printf("ArtNet [OpAddress] packet received, OpCode %0000x, ", artnet.opcode);
+     Serial.printf("ArtNet [OpAddress] packet received, OpCode %#06x, ", artnet.opcode);
      Serial.printf("NOT IMPLEMENTED.\n");
     }
 
     else  // Unknown Artnet Packed received
     {
-     Serial.printf("ArtNet [Unknown] packet received, OpCode %0000x, ", artnet.opcode);
+     Serial.printf("ArtNet [Unknown] packet received, OpCode %#06x, ", artnet.opcode);
      Serial.printf("NOT IMPLEMENTED of course.\n");
     }
 
