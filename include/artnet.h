@@ -25,10 +25,9 @@
 #define ART_NET_ID "Art-Net\0"
 #define ART_DMX_START 17
 
-extern WiFiUDP Udp;
+extern WiFiUDP Udp_Rx;
+extern WiFiUDP Udp_Tx;
 extern const int ledPin;
-extern const uint8_t levels;
-extern const uint8_t dimmingLevel;
 
 struct artnet_dmx_params_s {
   IPAddress broadcast = {255, 255, 255, 255};
@@ -100,7 +99,7 @@ Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
-  int packetSize = Udp.parsePacket();
+  int packetSize = Udp_Rx.parsePacket();
 
   //test if a packet has been recieved
   if (packetSize)
@@ -109,7 +108,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
 
     // Read Artnet Header
-    int len = Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
+    int len = Udp_Rx.read(artnet.packet, MAX_BUFFER_ARTNET);
 
     // Test for empty packet, if empty return immediately
     if(len < 1)
@@ -132,9 +131,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     if (artnet.opcode == ART_POLL) // ArtNet OpPoll received
     {
       Serial.print("ArtNet [OpPoll] packet received from ");
-      Serial.print(Udp.remoteIP());
+      Serial.print(Udp_Rx.remoteIP());
       Serial.print(":");
-      Serial.println(Udp.remotePort());
+      Serial.println(Udp_Rx.remotePort());
 
       IPAddress local_ip = WiFi.localIP();
 
@@ -188,8 +187,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       artPollReply.bindip[2] = artnet.node_ip_address[2];
       artPollReply.bindip[3] = artnet.node_ip_address[3];
 
-      artnet.listenUniverse = 2;
-
       uint8_t swin[4]  = {0}; // Each Hex number is the Universe the input will listen on
       uint8_t swout[4] = {0}; // Each Hex number is the Universe the output will listen on
       swout[0] = artnet.listenUniverse; // We set it here for channel 1
@@ -205,9 +202,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       Serial.println("ArtNet [OpPollReply] sending packet...");
 
-      Udp.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
-      Udp.write((uint8_t *)&artPollReply, sizeof(artPollReply));
-      Udp.endPacket();
+      Udp_Tx.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
+      Udp_Tx.write((uint8_t *)&artPollReply, sizeof(artPollReply));
+      Udp_Tx.endPacket();
     }
 
     else if(artnet.opcode == ART_DMX) // Artnet OpDmx packet received

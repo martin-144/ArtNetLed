@@ -14,7 +14,9 @@
 
 // UDP settings
 // const uint16_t udp_port = 6454;
-WiFiUDP Udp;
+// We use differnt instances of WifiUdp because there is a bug when sending and receiving at the same instance
+WiFiUDP Udp_Rx;
+WiFiUDP Udp_Tx;
 
 // WiFiManager
 WiFiManager wifiManager;
@@ -105,7 +107,7 @@ void setup()
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
 
   // set up UDP receiver
-  Udp.begin(ART_NET_PORT);
+  Udp_Rx.begin(ART_NET_PORT);
 
   // setup Torch
   resetEnergy();
