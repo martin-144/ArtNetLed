@@ -3,7 +3,6 @@
 
 #include <spiffs.h>
 #include <wifimanager.h>
-// #include <ESPAsyncUDP.h>
 #include <FastLED.h>
 #include <EasyButton.h>
 #include <artnet.h>
@@ -11,21 +10,14 @@
 #include <effects.h>
 #include <string>
 
-
-// UDP settings
-// const uint16_t udp_port = 6454;
-// We use differnt instances of WifiUdp because there is a bug when sending and receiving at the same instance
-// WiFiUDP Udp_Rx;
-// WiFiUDP Udp_Tx;
-
-// Local fastLed Ports
+// Local fastLed Port
 const uint8_t fastLedPin = D8; // Equals 0x0f
 
-// Blue LED blink interval
+// Blue LED Port
 const uint8_t ledPin = D4; // Equals 0x02
 
-// Flash button
-const uint8_t flashButtonPin = D3;
+// Flash button on NodeMCU
+const uint8_t flashButtonPin = D3; // Equals 0x00
 
 // set Flash button for EasyButton
 EasyButton flashButton(flashButtonPin);
@@ -39,7 +31,6 @@ void onPressedForDuration()
   // LED on while connecting to WLAN
   digitalWrite(ledPin, 0);
 
-  // wifiManager.resetSettings();
   ESP.reset();
   ESP.restart();
 }
@@ -51,10 +42,8 @@ void setup()
 {
   // start serial port
   Serial.begin(115200);
-  delay(2000);
+  // delay(2000);
   Serial.print("Serial Starting...\n");
-
-    // pinMode(flashButtonPin, INPUT);
 
   // Add the callback function to be called when the button is pressed for at least the given time.
   flashButton.onPressedFor(4000, onPressedForDuration);
@@ -69,7 +58,7 @@ void setup()
   // If D5 == true, we have the WEMOS
   // If D5 == false, we have the nodeMCU
 
-  // Therefore we activate the pullup on D5 and set a jumper to GND on the NodeMCU board
+  // Therefore we activate the pullup on D5 and set a jumper from D5 to GND on the NodeMCU board
   pinMode(D5, INPUT_PULLUP);
 
   if(digitalRead(D5) == true)
@@ -85,11 +74,8 @@ void setup()
     Serial.printf("Found NodeMCU Board, assuming ledsPerLevel = %d, levels = %d\n", ledsPerLevel, levels);
   }
 
-
   // Start WiFiMnager
   wifiManagerStart();
-
-  // wifiManager.resetSettings();
 
   // LED off after connecting to WLAN
   digitalWrite(ledPin, 1);
@@ -97,8 +83,9 @@ void setup()
   // start FastLED port
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
 
-  // set up UDP receiver
+  // set up UDP Rx and Tx
   Udp_Rx.begin(ART_NET_PORT);
+  Udp_Tx.begin(ART_NET_PORT);
 
   // setup Torch
   resetEnergy();
@@ -112,7 +99,7 @@ void setup()
 
 void loop()
 {
-  // get Art-Net
+  // get Art-Net Data
   recieveUdp();
 
   // prepare Torch animation
@@ -122,7 +109,6 @@ void loop()
 
     switch(artnetTorchParams.effect)
     {
-
       case 0 ... 19:
         // Serial.println("Effect: No Effect");
         FastLED.clear();
@@ -136,10 +122,10 @@ void loop()
       case 40 ... 59:
         // This is all Torch Stuff
         // param1 = fadeheight
-        // Serial.println("Effect: Fire");
+        // Serial.println("Effect: Torch");
         injectRandom();
-        calcNextEnergy(artnetTorchParams.param1);
         calcNextColors(artnetTorchParams.colorRGB);
+        calcNextEnergy(artnetTorchParams.param1);
         break;
 
       case 60 ... 79:
@@ -189,6 +175,8 @@ void loop()
     }
   }
 
+  flashButton.read();
+
   EVERY_N_MILLISECONDS(10)
   {
     // Add sparkle
@@ -196,25 +184,24 @@ void loop()
     {
       sparkle(CRGB(255,255,255).nscale8(artnetTorchParams.param2));
     }
-  }
 
-  EVERY_N_MILLISECONDS(10)
-  {
     FastLED.setBrightness(artnetTorchParams.brightness);
     FastLED.show();
   }
 
-  flashButton.read();
-
+  /*
   EVERY_N_MILLISECONDS(2000)
   {
     // Serial.println(".");
-    digitalWrite(ledPin, 0);  // LED on
-    delay(2);
-    digitalWrite(ledPin, 1);  // LED off
+    // digitalWrite(ledPin, 0);  // LED on
+    // Serial.printf("*Memory Free heap: %d\n", ESP.getFreeHeap());
+    // delay(2);  // is this ms or seconds?
+    // digitalWrite(ledPin, 1);  // LED off
 
-    nblendPaletteTowardPalette(currentPalette, targetPalette, 24);   // AWESOME palette blending capability.
-    uint8_t baseC = random8();                                       // You can use this as a baseline colour if you want similar hues in the next line.
-    targetPalette = CRGBPalette16(CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)), CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)));
+
+    // nblendPaletteTowardPalette(currentPalette, targetPalette, 24);   // AWESOME palette blending capability.
+    // uint8_t baseC = random8();                                       // You can use this as a baseline colour if you want similar hues in the next line.
+    // targetPalette = CRGBPalette16(CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)), CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)));
   }
+  */
 }

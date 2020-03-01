@@ -14,7 +14,6 @@ void wifiManagerStart();
 // WiFiManagler local intialization. Once its business is done, there is no need to keep it around
 WiFiManager wifiManager;
 
-
 String getParam(String name)
 {
   //read parameter from server, for customhmtl input
@@ -64,13 +63,13 @@ void wifiManagerStart()
   ---------------------------------------------------------------------
   */
 
-  std::vector<const char*> menu = {"wifi", "wifinoscan", "param", "info", "update", "close", "sep", "exit", "sep", "restart", "erase"};
-  wifiManager.setMenu(menu); // custom menu, pass vector
+  // std::vector<const char*> menu = {"wifi", "wifinoscan", "param", "info", "update", "close", "sep", "exit", "sep", "restart", "erase"};
+  // wifiManager.setMenu(menu); // custom menu, pass vector
 
   // set custom ip for portal
   // wifiManager.setAPStaticIPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0));
 
-  wifiManager.setShowStaticFields(true);
+  // wifiManager.setShowStaticFields(true);
 
   /*
   ---------------------------------------------------------------------
