@@ -3,38 +3,32 @@
 
 #include <spiffs.h>
 #include <wifimanager.h>
+// #include <ESPAsyncUDP.h>
 #include <FastLED.h>
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
 #include <EasyButton.h>
 #include <artnet.h>
 #include <torch.h>
 #include <effects.h>
 #include <string>
 
+
 // UDP settings
 // const uint16_t udp_port = 6454;
 // We use differnt instances of WifiUdp because there is a bug when sending and receiving at the same instance
-WiFiUDP Udp_Rx;
-WiFiUDP Udp_Tx;
-
-// WiFiManager
-WiFiManager wifiManager;
+// WiFiUDP Udp_Rx;
+// WiFiUDP Udp_Tx;
 
 // Local fastLed Ports
 const uint8_t fastLedPin = D8; // Equals 0x0f
 
 // Blue LED blink interval
-const int interval = 500;
-const int ledPin = D4; // Equals 0x02
+const uint8_t ledPin = D4; // Equals 0x02
 
 // Flash button
-const int flashButtonPin = 0x00;
+const uint8_t flashButtonPin = D3;
 
 // set Flash button for EasyButton
 EasyButton flashButton(flashButtonPin);
-
-IPAddress broadcastIp(255, 255, 255, 255);
 
 // Callback function to be called when the button is pressed.
 void onPressedForDuration()
@@ -45,7 +39,7 @@ void onPressedForDuration()
   // LED on while connecting to WLAN
   digitalWrite(ledPin, 0);
 
-  wifiManager.resetSettings();
+  // wifiManager.resetSettings();
   ESP.reset();
   ESP.restart();
 }
@@ -60,7 +54,7 @@ void setup()
   delay(2000);
   Serial.print("Serial Starting...\n");
 
-  // pinMode(flashButtonPin, INPUT);
+    // pinMode(flashButtonPin, INPUT);
 
   // Add the callback function to be called when the button is pressed for at least the given time.
   flashButton.onPressedFor(4000, onPressedForDuration);
@@ -91,12 +85,9 @@ void setup()
     Serial.printf("Found NodeMCU Board, assuming ledsPerLevel = %d, levels = %d\n", ledsPerLevel, levels);
   }
 
+
   // Start WiFiMnager
   wifiManagerStart();
-
-  // Set DMX channel and universe
-  // artnet.dmxChannel_int = artnet.dmxChannel.toInt();
-  // artnet.universe_int = artnet.universe.toInt();
 
   // wifiManager.resetSettings();
 

@@ -25,13 +25,13 @@
 #define ART_NET_ID "Art-Net\0"
 #define ART_DMX_START 17
 
-extern WiFiUDP Udp_Rx;
-extern WiFiUDP Udp_Tx;
-extern const int ledPin;
+WiFiUDP Udp_Rx;
+WiFiUDP Udp_Tx;
+extern const uint8_t ledPin;
 
 struct artnet_dmx_params_s {
   IPAddress broadcast = {255, 255, 255, 255};
-  IPAddress unicast;
+  IPAddress unicast = {192, 168, 178, 255};
   uint16_t opcode;
   uint16_t universe;
   uint16_t listenUniverse;
@@ -209,8 +209,18 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     else if(artnet.opcode == ART_DMX) // Artnet OpDmx packet received
     {
-      Serial.printf("ArtNet [OpDmx] packet received, Universe %d, DMX length %d. ", artnet.universe, artnet.dmxLength);
-      Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
+      static int num = 0;
+
+      EVERY_N_SECONDS(1)
+      {
+        Serial.printf("ArtNet [%d OpDmx] packets received, Universe %d, DMX length %d. ", num, artnet.universe, artnet.dmxLength);
+        Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
+        num = 0;
+        // for(int i=0; i < MAX_BUFFER_ARTNET; i++)
+        // {
+        //  Serial.printf("\\x%02x", artnet.packet[i]);
+        // }
+      }
 
       if(artnet.universe != artnet.listenUniverse)
       return;
@@ -222,6 +232,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
          7: param1;
          8: param2;
       */
+
+      num++;
 
       artnetTorchParams.brightness = artnet.packet[ART_DMX_START + artnet.dmxChannel];
       artnetTorchParams.colorRGB = CRGB(artnet.packet[ART_DMX_START + artnet.dmxChannel + 1],
