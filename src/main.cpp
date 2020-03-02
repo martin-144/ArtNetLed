@@ -124,8 +124,8 @@ void loop()
         // param1 = fadeheight
         // Serial.println("Effect: Torch");
         injectRandom();
-        calcNextColors(artnetTorchParams.colorRGB);
         calcNextEnergy(artnetTorchParams.param1);
+        calcNextColors(artnetTorchParams.colorRGB);
         break;
 
       case 60 ... 79:
