@@ -136,6 +136,8 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       Serial.print(":");
       Serial.println(Udp_Rx.remotePort());
 
+      artnet.unicast = Udp_Rx.remoteIP();
+
       IPAddress local_ip = WiFi.localIP();
 
       artnet.node_ip_address[0] = local_ip[0];
@@ -201,9 +203,10 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
       sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
-      Serial.println("*ArtNet [OpPollReply] sending packet...");
+      Serial.print("*ArtNet [OpPollReply] received, sending ArtPollReply packet to ");
+      Serial.println(artnet.unicast);
 
-      Udp_Tx.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
+      Udp_Tx.beginPacket(artnet.unicast, ART_NET_PORT); //send ArtNet OpPollReply
       Udp_Tx.write((uint8_t *)&artPollReply, sizeof(artPollReply));
       Udp_Tx.endPacket();
     }
