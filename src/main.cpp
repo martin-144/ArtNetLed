@@ -4,11 +4,10 @@
 #include <spiffs.h>
 #include <wifimanager.h>
 #include <FastLED.h>
-#include <EasyButton.h>
 #include <artnet.h>
 #include <torch.h>
 #include <effects.h>
-#include <string>
+#include <EasyButton.h>
 
 // Local fastLed Port
 const uint8_t fastLedPin = D8; // Equals 0x0f
@@ -54,7 +53,7 @@ void setup()
   // LED on while connecting to WLAN
   digitalWrite(ledPin, 0);
 
-  // Find out which board we use
+  /* Find out which board we use */
   // If D5 == true, we have the WEMOS
   // If D5 == false, we have the nodeMCU
 
@@ -91,7 +90,7 @@ void setup()
   resetEnergy();
 
   // disable FastLED dither to prevent flickering
-  FastLED.setDither(0);
+  // FastLED.setDither(0);
 
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");
@@ -160,11 +159,6 @@ void loop()
         break;
 
       case 180 ... 199:
-        // Serial.println("Effect: Plasma");
-        plasma(artnetTorchParams.param1);
-        break;
-
-      case 200 ... 219:
         // Serial.println("Effect: Juggle");
         juggle(artnetTorchParams.colorRGB, artnetTorchParams.param1);
         break;
@@ -180,7 +174,7 @@ void loop()
 
   EVERY_N_MILLISECONDS(10)
   {
-    // Add sparkle
+    /* Add sparkle */
     if(artnetTorchParams.param2)
     {
       sparkle(CRGB(255,255,255).nscale8(artnetTorchParams.param2));
@@ -190,19 +184,16 @@ void loop()
     FastLED.show();
   }
 
-  /*
+
   EVERY_N_MILLISECONDS(2000)
   {
-    // Serial.println(".");
-    // digitalWrite(ledPin, 0);  // LED on
+    /* Debug Stuff... */
+    // WiFi.printDiag(Serial);
     // Serial.printf("*Memory Free heap: %d\n", ESP.getFreeHeap());
-    // delay(2);  // is this ms or seconds?
-    // digitalWrite(ledPin, 1);  // LED off
 
-
-    // nblendPaletteTowardPalette(currentPalette, targetPalette, 24);   // AWESOME palette blending capability.
-    // uint8_t baseC = random8();                                       // You can use this as a baseline colour if you want similar hues in the next line.
-    // targetPalette = CRGBPalette16(CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)), CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(128,255)));
+    /* Blink LED */
+    digitalWrite(ledPin, 0);  // LED on
+    delay(2);  // is this ms or seconds? It is ms.
+    digitalWrite(ledPin, 1);  // LED off
   }
-  */
 }
