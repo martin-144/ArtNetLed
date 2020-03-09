@@ -83,14 +83,13 @@ void setup()
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
 
   // set up UDP Rx and Tx
-  Udp_Rx.begin(ART_NET_PORT);
-  Udp_Tx.begin(ART_NET_PORT);
+  Udp.begin(ART_NET_PORT);
 
   // setup Torch
   resetEnergy();
 
   // disable FastLED dither to prevent flickering
-  // FastLED.setDither(0);
+  FastLED.setDither(0);
 
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");

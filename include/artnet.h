@@ -25,8 +25,7 @@
 #define ART_NET_ID "Art-Net\0"
 #define ART_DMX_START 17
 
-WiFiUDP Udp_Rx;
-WiFiUDP Udp_Tx;
+WiFiUDP Udp;
 
 extern const uint8_t ledPin;
 
@@ -102,16 +101,16 @@ Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
-Udp_Rx.parsePacket();
+Udp.parsePacket();
 
   //test if a packet has been recieved
-  if(Udp_Rx.available())
+  if(Udp.available())
   {
     // Print received byte
-    // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp_Rx.remoteIP().toString().c_str(), Udp_Rx.remotePort()); // For Debug
+    // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
 
     // Read Artnet Header
-    Udp_Rx.read(artnet.packet, MAX_BUFFER_ARTNET);
+    Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
 
     // Check that packetID is "Art-Net" else return
     for (byte i = 0 ; i < 8 ; i++)
@@ -129,11 +128,11 @@ Udp_Rx.parsePacket();
     if (artnet.opcode == ART_POLL) // ArtNet OpPoll received
     {
       Serial.print("*ArtNet [OpPoll] packet received from ");
-      Serial.print(Udp_Rx.remoteIP());
+      Serial.print(Udp.remoteIP());
       Serial.print(":");
-      Serial.println(Udp_Rx.remotePort());
+      Serial.println(Udp.remotePort());
 
-      artnet.unicast = Udp_Rx.remoteIP();
+      artnet.unicast = Udp.remoteIP();
 
       IPAddress local_ip = WiFi.localIP();
 
@@ -159,8 +158,8 @@ Udp_Rx.parsePacket();
 
       uint8_t shortname [18] = {0};
       uint8_t longname [64] = {0};
-      // sprintf((char *)shortname, "ArtNet Torch");
-      // sprintf((char *)longname, "ArtNet Torch");
+      sprintf((char *)shortname, "ArtNet Torch");
+      sprintf((char *)longname, "ArtNet Torch");
       memcpy(artPollReply.shortname, shortname, sizeof(shortname));
       memcpy(artPollReply.longname, longname, sizeof(longname));
 
@@ -203,9 +202,9 @@ Udp_Rx.parsePacket();
       Serial.print("*ArtNet [OpPollReply] received, sending ArtPollReply packet to ");
       Serial.println(artnet.unicast);
 
-      Udp_Tx.beginPacket(artnet.broadcast, ART_NET_PORT); //send ArtNet OpPollReply
-      Udp_Tx.write((uint8_t *)&artPollReply, sizeof(artPollReply));
-      Udp_Tx.endPacket();
+      Udp.beginPacket(artnet.unicast, ART_NET_PORT); //send ArtNet OpPollReply
+      Udp.write((uint8_t *)&artPollReply, sizeof(artPollReply));
+      Udp.endPacket();
       yield();
     }
 
