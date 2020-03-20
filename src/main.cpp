@@ -30,6 +30,7 @@ void onPressedForDuration()
   // LED on while connecting to WLAN
   digitalWrite(ledPin, 0);
 
+  wifiManager.resetSettings();
   ESP.reset();
   ESP.restart();
 }
@@ -41,11 +42,8 @@ void setup()
 {
   // start serial port
   Serial.begin(115200);
-  // delay(2000);
+  delay(2000);
   Serial.print("Serial Starting...\n");
-
-  // Add the callback function to be called when the button is pressed for at least the given time.
-  flashButton.onPressedFor(4000, onPressedForDuration);
 
   // set LED port
   pinMode(ledPin, OUTPUT);
@@ -56,7 +54,6 @@ void setup()
   /* Find out which board we use */
   // If D5 == true, we have the WEMOS
   // If D5 == false, we have the nodeMCU
-
   // Therefore we activate the pullup on D5 and set a jumper from D5 to GND on the NodeMCU board
   pinMode(D5, INPUT_PULLUP);
 
@@ -73,23 +70,26 @@ void setup()
     Serial.printf("Found NodeMCU Board, assuming ledsPerLevel = %d, levels = %d\n", ledsPerLevel, levels);
   }
 
-  // Start WiFiMnager
+  // Start WiFiManager
   wifiManagerStart();
 
   // LED off after connecting to WLAN
   digitalWrite(ledPin, 1);
 
+  // Add the callback function to be called when the button is pressed for at least the given time.
+  flashButton.onPressedFor(4000, onPressedForDuration);
+
+  // set up UDP
+  Udp.begin(ART_NET_PORT);
+
   // start FastLED port
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
 
-  // set up UDP Rx and Tx
-  Udp.begin(ART_NET_PORT);
+  // disable FastLED dither to prevent flickering
+  FastLED.setDither(0);
 
   // setup Torch
   resetEnergy();
-
-  // disable FastLED dither to prevent flickering
-  FastLED.setDither(0);
 
   //send message that setup is completed
   Serial.println("\nLeaving setup,\nEntering Main loop...");
@@ -97,7 +97,8 @@ void setup()
 
 void loop()
 {
-  // get Art-Net Data
+  // Serial.println("Loop");
+  /* get Art-Net Data */
   recieveUdp();
 
   // prepare Torch animation
@@ -169,10 +170,11 @@ void loop()
     }
   }
 
-  flashButton.read();
-
-  EVERY_N_MILLISECONDS(10)
+    EVERY_N_MILLISECONDS(10)
   {
+    /* Read Flash button */
+    flashButton.read();
+
     /* Add sparkle */
     if(artnetTorchParams.param2)
     {
@@ -183,12 +185,12 @@ void loop()
     FastLED.show();
   }
 
-
   EVERY_N_MILLISECONDS(2000)
   {
     /* Debug Stuff... */
     // WiFi.printDiag(Serial);
-    // Serial.printf("*Memory Free heap: %d\n", ESP.getFreeHeap());
+    // Serial.printf("*Memory [Free heap] %d\n", ESP.getFreeHeap());
+    // Serial.printf("*Memory [Free stack] %d\n", ESP.getFreeContStack());
 
     /* Blink LED */
     digitalWrite(ledPin, 0);  // LED on
