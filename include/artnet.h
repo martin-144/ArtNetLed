@@ -32,8 +32,8 @@ extern const uint8_t ledPin;
 struct artnet_dmx_params_s {
   // IPAddress broadcast = {255, 255, 255, 255};
   IPAddress unicast;
-  int16_t opcode;
-  int16_t universe;
+  uint16_t opcode;
+  uint16_t universe;
   uint16_t listenUniverse;
   uint16_t dmxChannel;
   uint16_t numports;
@@ -101,7 +101,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 int packetSize = Udp.parsePacket();
 
     // Test if a packet has been recieved
-    if(Udp.available())
+    if(packetSize)
     {
     // Print received byte
     // if(packetSize != 530)
@@ -228,8 +228,8 @@ void sendArtDmxReply(void) {
   memset(artPollReply.goodoutput, 0x80, 4);
   memset(artPollReply.porttypes, 0x80, 4);
 
-  uint8_t shortname [18] = {0};
-  uint8_t longname [64] = {0};
+  uint8_t shortname[18] = {0};
+  uint8_t longname[64] = {0};
   sprintf((char *)shortname, "ArtNet Torch");
   sprintf((char *)longname, "ArtNet Torch");
   memcpy(artPollReply.shortname, shortname, sizeof(shortname));
@@ -244,7 +244,7 @@ void sendArtDmxReply(void) {
   artPollReply.oem[1]       = 0;
   artPollReply.oem[0]       = 0;
   artPollReply.ubea         = 0;
-  artPollReply.status1       = 0xd0;
+  artPollReply.status1      = 0xd0;
   artPollReply.swvideo      = 0;
   artPollReply.swmacro      = 0;
   artPollReply.swremote     = 0;
@@ -278,9 +278,15 @@ void sendArtDmxReply(void) {
 
   sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
-  Udp.beginPacket(artnet.unicast, ART_NET_PORT); //send ArtNet OpPollReply
-  Udp.write((uint8_t *)&artPollReply, sizeof(artPollReply));
-  Udp.endPacket();
+  // Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
+  // Udp.flush();
+
+  WiFiUDP UdpTx;
+  UdpTx.begin(ART_NET_PORT);
+  UdpTx.beginPacket(artnet.unicast, ART_NET_PORT); //send ArtNet OpPollReply
+  UdpTx.write((uint8_t *)&artPollReply, sizeof(artPollReply));
+  UdpTx.endPacket();
+  UdpTx.stop();
 }
 
 #endif // ARDUINO_ARTNET_H

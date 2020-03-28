@@ -82,6 +82,7 @@ void setup()
   // set up UDP
   Udp.begin(ART_NET_PORT);
 
+
   // start FastLED port
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
 
