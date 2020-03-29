@@ -80,8 +80,8 @@ void setup()
   flashButton.onPressedFor(4000, onPressedForDuration);
 
   // set up UDP
-  Udp.begin(ART_NET_PORT);
-
+  Udp.listen(ART_NET_PORT);
+  Udp.onPacket(receiveUdp);
 
   // start FastLED port
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
@@ -100,7 +100,7 @@ void loop()
 {
   // Serial.println("Loop");
   /* get Art-Net Data */
-  recieveUdp();
+  // recieveUdp();
 
   // prepare Torch animation
   EVERY_N_MILLISECONDS_I(animationTimer, 20)
@@ -171,7 +171,7 @@ void loop()
     }
   }
 
-    EVERY_N_MILLISECONDS(10)
+  EVERY_N_MILLISECONDS(10)
   {
     /* Read Flash button */
     flashButton.read();

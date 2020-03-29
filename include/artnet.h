@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
+#include <ESPAsyncUDP.h>
 #include <torch.h>
 
 // UDP specific
@@ -25,7 +25,7 @@
 #define ART_NET_ID "Art-Net\0"
 #define ART_DMX_START 17
 
-WiFiUDP Udp;
+AsyncUDP Udp;
 
 extern const uint8_t ledPin;
 
@@ -91,24 +91,16 @@ struct art_poll_reply_s artPollReply;
 void sendArtDmxReply(void);
 void receiveArtDmx(void);
 
-void recieveUdp()
+void receiveUdp(AsyncUDPPacket &packet)
 /*
 Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
-// Serial.println("receiveUDP");
-int packetSize = Udp.parsePacket();
-
-    // Test if a packet has been recieved
-    if(packetSize)
-    {
-    // Print received byte
-    // if(packetSize != 530)
-    // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
-
-    // Read Artnet Header
-    Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
+    // Serial.println("receiveUDP");
+    memcpy(artnet.packet, packet.data(), packet.length());
+    // Serial.write(packet.data(), packet.length());
+    // Serial.println();
 
     // Check that packetID is "Art-Net" else return
     for (byte i = 0 ; i < 8 ; i++)
@@ -118,6 +110,7 @@ int packetSize = Udp.parsePacket();
     }
 
     artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
+    artnet.unicast = packet.remoteIP();
 
     digitalWrite(ledPin, 0);  // Light Led when receiving Artnet data
 
@@ -126,13 +119,13 @@ int packetSize = Udp.parsePacket();
     case ART_POLL: // ArtNet OpPoll received
       sendArtDmxReply();
       Serial.print("*ArtNet [OpPoll] received from ");
-      Serial.print(Udp.remoteIP());
+      Serial.print(packet.remoteIP());
       Serial.print(":");
-      Serial.print(Udp.remotePort());
+      Serial.print(packet.remotePort());
       Serial.print(", sent [OpPollReply] packet to ");
       Serial.print(artnet.unicast);
       Serial.print(":");
-      Serial.println(Udp.remotePort());
+      Serial.println(packet.remotePort());
       break;
 
     case ART_DMX: // Artnet OpDmx packet received
@@ -140,9 +133,9 @@ int packetSize = Udp.parsePacket();
       EVERY_N_SECONDS(1)
       {
         Serial.printf("*ArtNet [%d OpDmx] packets received from " , num);
-        Serial.print(Udp.remoteIP());
+        Serial.print(packet.remoteIP());
         Serial.print(":");
-        Serial.print(Udp.remotePort());
+        Serial.print(packet.remotePort());
         Serial.printf(", Universe %d. ", artnet.universe);
         Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
         num = 0;
@@ -168,7 +161,6 @@ int packetSize = Udp.parsePacket();
 
     }
     digitalWrite(ledPin, 1);  // Unlight LED
-  }
 }
 
 void receiveArtDmx(void)
@@ -208,7 +200,7 @@ void sendArtDmxReply(void) {
   artnet.node_ip_address[2] = local_ip[2];
   artnet.node_ip_address[3] = local_ip[3];
 
-  artnet.unicast = Udp.remoteIP();
+  // artnet.unicast = Udp.remoteIP();
 
   sprintf((char *)artnet.id, "Art-Net");
   memcpy(artPollReply.id, artnet.id, sizeof(artPollReply.id));
@@ -281,12 +273,10 @@ void sendArtDmxReply(void) {
   // Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
   // Udp.flush();
 
-  WiFiUDP UdpTx;
-  UdpTx.begin(ART_NET_PORT);
-  UdpTx.beginPacket(artnet.unicast, ART_NET_PORT); //send ArtNet OpPollReply
-  UdpTx.write((uint8_t *)&artPollReply, sizeof(artPollReply));
-  UdpTx.endPacket();
-  UdpTx.stop();
+
+  // Udp.broadcast((uint8_t *)&artPollReply, sizeof(artPollReply)); //send ArtNet OpPollReply
+  // Udp.sendTo((uint8_t *)&artPollReply, artnet.unicast, ART_NET_PORT);
+  Udp.writeTo((uint8_t *)&artPollReply, sizeof(artPollReply), artnet.unicast, ART_NET_PORT);
 }
 
 #endif // ARDUINO_ARTNET_H
