@@ -32,13 +32,13 @@ extern const uint8_t ledPin;
 struct artnet_dmx_params_s {
   // IPAddress broadcast = {255, 255, 255, 255};
   IPAddress unicast;
+  IPAddress node_ip_address;
   uint16_t opcode;
   uint16_t universe;
   uint16_t listenUniverse;
   uint16_t dmxChannel;
-  uint16_t numports;
+  uint16_t numports = 1;
   uint8_t packet[MAX_BUFFER_ARTNET];
-  uint8_t node_ip_address[4];
   uint8_t id[8];
 };
 struct artnet_dmx_params_s artnet;
@@ -56,7 +56,7 @@ struct artnet_torch_params_s artnetTorchParams;
 struct art_poll_reply_s {
   uint8_t  id[8];
   uint16_t opCode;
-  uint8_t  ip[4];
+  IPAddress ip;
   uint16_t port;
   uint8_t  ver[2];
   uint8_t  sub[2];
@@ -68,11 +68,11 @@ struct art_poll_reply_s {
   uint8_t  longname[64];
   uint8_t  nodereport[64];
   uint8_t  numports[2]; // Don't change it here! Here is Number of Bytes.
-  uint8_t  porttypes[4]; //max of 4 ports per node
-  uint8_t  goodinput[4];
-  uint8_t  goodoutput[4];
-  uint8_t  swin[4];
-  uint8_t  swout[4];
+  uint8_t  porttypes[4] = {0}; //max of 4 ports per node
+  uint8_t  goodinput[4] = {0};
+  uint8_t  goodoutput[4] = {0};
+  uint8_t  swin[4] = {0};
+  uint8_t  swout[4] = {0};
   uint8_t  swvideo;
   uint8_t  swmacro;
   uint8_t  swremote;
@@ -81,14 +81,14 @@ struct art_poll_reply_s {
   uint8_t  sp3;
   uint8_t  style;
   uint8_t  mac[6];
-  uint8_t  bindip[4];
+  IPAddress bindip;
   uint8_t  bindindex;
   uint8_t  status2;
   uint8_t  filler[26];
 } __attribute__((packed));
 struct art_poll_reply_s artPollReply;
 
-void sendArtDmxReply(void);
+void sendArtPollReply(void);
 void receiveArtDmx(void);
 
 void receiveUdp(AsyncUDPPacket &packet)
@@ -111,13 +111,14 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
     artnet.unicast = packet.remoteIP();
+    artnet.node_ip_address = packet.localIP();
 
     digitalWrite(ledPin, 0);  // Light Led when receiving Artnet data
 
     switch(artnet.opcode)
     {
     case ART_POLL: // ArtNet OpPoll received
-      sendArtDmxReply();
+      sendArtPollReply();
       Serial.print("*ArtNet [OpPoll] received from ");
       Serial.print(packet.remoteIP());
       Serial.print(":");
@@ -192,17 +193,9 @@ void receiveArtDmx(void)
   artnetTorchParams.param2 = artnet.packet[ART_DMX_START + artnet.dmxChannel + 7];
 }
 
-void sendArtDmxReply(void) {
-  IPAddress local_ip = WiFi.localIP();
+void sendArtPollReply(void) {
 
-  artnet.node_ip_address[0] = local_ip[0];
-  artnet.node_ip_address[1] = local_ip[1];
-  artnet.node_ip_address[2] = local_ip[2];
-  artnet.node_ip_address[3] = local_ip[3];
-
-  // artnet.unicast = Udp.remoteIP();
-
-  sprintf((char *)artnet.id, "Art-Net");
+  sprintf((char *)artnet.id, ART_NET_ID);
   memcpy(artPollReply.id, artnet.id, sizeof(artPollReply.id));
   memcpy(artPollReply.ip, artnet.node_ip_address, sizeof(artPollReply.ip));
 
@@ -212,20 +205,23 @@ void sendArtDmxReply(void) {
   artPollReply.opCode = ART_POLL_REPLY;
   artPollReply.port = ART_NET_PORT;
 
-  // memset(artPollReply.goodinput, 0x00, 4);
-  // memset(artPollReply.goodoutput, 0x80, 4);
-  // memset(artPollReply.porttypes, 0b01000101, 4);
-
+  /*
   memset(artPollReply.goodinput, 0x80, 4);
   memset(artPollReply.goodoutput, 0x80, 4);
   memset(artPollReply.porttypes, 0x80, 4);
+  */
 
+  /*
   uint8_t shortname[18] = {0};
   uint8_t longname[64] = {0};
   sprintf((char *)shortname, "ArtNet Torch");
   sprintf((char *)longname, "ArtNet Torch");
   memcpy(artPollReply.shortname, shortname, sizeof(shortname));
   memcpy(artPollReply.longname, longname, sizeof(longname));
+  */
+
+  strcpy((char *)artPollReply.shortname, "ArtNet Torch");
+  strcpy((char *)artPollReply.longname, "ArtNet Torch");
 
   artPollReply.estaman[1] = 'K';
   artPollReply.estaman[0] = 'B';
@@ -242,31 +238,38 @@ void sendArtDmxReply(void) {
   artPollReply.swremote     = 0;
   artPollReply.style        = 0;
 
+  // artPollReply.numports[0]  = (artnet.numports >> 8) & 0xff;
+  // artPollReply.numports[1]  = artnet.numports & 0xff00;
+
+  artPollReply.numports[0] = 1;
+  artPollReply.numports[1] = 0;
+
+  artPollReply.status2     = 0x08;
+
   /*
-  artPollReply.numports[0]  = (artnet.numports >> 8) & 0xff;
-  artPollReply.numports[1]  = artnet.numports & 0xff;
-  */
-
-  artPollReply.numports[0]  = 0;
-  artPollReply.numports[1]  = 1;
-
-  artPollReply.status2      = 0x08;
-
   artPollReply.bindip[0] = artnet.node_ip_address[0];
   artPollReply.bindip[1] = artnet.node_ip_address[1];
   artPollReply.bindip[2] = artnet.node_ip_address[2];
   artPollReply.bindip[3] = artnet.node_ip_address[3];
+  */
 
-  uint8_t swin[4]  = {0}; // Each Hex number is the Universe the input will listen on
-  uint8_t swout[4] = {0}; // Each Hex number is the Universe the output will listen on
-  swout[0] = artnet.listenUniverse; // We set it here for channel 1
-  swin[0] = artnet.listenUniverse; // We set it here for channel 1
+  artPollReply.bindip = artnet.node_ip_address;
 
+  // uint8_t swin[4]  = {0}; // Each Hex number is the Universe the input will listen on
+  // uint8_t swout[4] = {0}; // Each Hex number is the Universe the output will listen on
+  // swout[0] = artnet.listenUniverse; // We set it here for channel 1
+  // swin[0] = artnet.listenUniverse; // We set it here for channel 1
+
+  /*
   for(uint8_t i = 0; i < 4; i++)
   {
     artPollReply.swout[i] = swout[i];
     artPollReply.swin[i] = swin[i];
   }
+  */
+
+  artPollReply.swout[0] = artnet.listenUniverse;
+  artPollReply.swin[0] = artnet.listenUniverse;
 
   sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
