@@ -1,5 +1,8 @@
-#define FASTLED_ALLOW_INTERRUPTS 0
+#define FASTLED_ALLOW_INTERRUPTS 1
+#define INTERRUPT_THRESHOLD 1
 #define FASTLED_ESP8266_RAW_PIN_ORDER
+//  #define FASTLED_ESP8266_DMA // Don't use with stock FastLED
+//  https://github.com/coryking/FastLED.git // Not yet tested
 
 #include <spiffs.h>
 #include <wifimanager.h>
@@ -8,6 +11,7 @@
 #include <torch.h>
 #include <effects.h>
 #include <EasyButton.h>
+#include <ESPAsyncUDP.h>
 
 // Local fastLed Port
 const uint8_t fastLedPin = D8; // Equals 0x0f
@@ -18,8 +22,14 @@ const uint8_t ledPin = D4; // Equals 0x02
 // Flash button on NodeMCU
 const uint8_t flashButtonPin = D3; // Equals 0x00
 
+// Board identification pin
+const uint8_t boardIdentPin = D5; // Equals 0x0e
+
 // set Flash button for EasyButton
 EasyButton flashButton(flashButtonPin);
+
+uint16_t count = 0;
+
 
 // Callback function to be called when the button is pressed.
 void onPressedForDuration()
@@ -45,6 +55,8 @@ void setup()
   delay(2000);
   Serial.print("Serial Starting...\n");
 
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
   // set LED port
   pinMode(ledPin, OUTPUT);
 
@@ -57,7 +69,7 @@ void setup()
   // Therefore we activate the pullup on D5 and set a jumper from D5 to GND on the NodeMCU board
   pinMode(D5, INPUT_PULLUP);
 
-  if(digitalRead(D5) == true)
+  if(digitalRead(boardIdentPin) == true) // This is still not properly implemented
   {
     // ledsPerLevel = 14;
     // levels = 28;
@@ -65,7 +77,7 @@ void setup()
   }
   else
   {
-    // ledsPerLevel = 8;
+    // ledsPerLevel = 8;,
     // levels = 26;
     Serial.printf("Found NodeMCU Board, assuming ledsPerLevel = %d, levels = %d\n", ledsPerLevel, levels);
   }
@@ -100,7 +112,7 @@ void loop()
 {
   // Serial.println("Loop");
   /* get Art-Net Data */
-  // recieveUdp();
+  // recieveUdp(); // Is done by the callback from AsyncUDP
 
   // prepare Torch animation
   EVERY_N_MILLISECONDS_I(animationTimer, 20)
