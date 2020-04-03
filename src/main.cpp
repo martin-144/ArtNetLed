@@ -4,32 +4,26 @@
 //  #define FASTLED_ESP8266_DMA // Don't use with stock FastLED
 //  https://github.com/coryking/FastLED.git // Not yet tested
 
+#include <ESPAsyncUDP.h>
+#include <EasyButton.h>
+#include <FastLED.h>
 #include <spiffs.h>
 #include <wifimanager.h>
-#include <FastLED.h>
 #include <artnet.h>
 #include <torch.h>
 #include <effects.h>
-#include <EasyButton.h>
-#include <ESPAsyncUDP.h>
 
 // Local fastLed Port
 const uint8_t fastLedPin = D8; // Equals 0x0f
-
 // Blue LED Port
 const uint8_t ledPin = D4; // Equals 0x02
-
 // Flash button on NodeMCU
 const uint8_t flashButtonPin = D3; // Equals 0x00
-
 // Board identification pin
 const uint8_t boardIdentPin = D5; // Equals 0x0e
 
 // set Flash button for EasyButton
 EasyButton flashButton(flashButtonPin);
-
-uint16_t count = 0;
-
 
 // Callback function to be called when the button is pressed.
 void onPressedForDuration()
@@ -111,6 +105,7 @@ void setup()
 void loop()
 {
   // Serial.println("Loop");
+
   /* get Art-Net Data */
   // recieveUdp(); // Is done by the callback from AsyncUDP
 
@@ -133,7 +128,6 @@ void loop()
 
       case 40 ... 59:
         // This is all Torch Stuff
-        // param1 = fadeheight
         // Serial.println("Effect: Torch");
         injectRandom();
         // These functions must be called in this sequence, other makes problems

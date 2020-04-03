@@ -6,10 +6,10 @@
 #include <ESPAsyncUDP.h>
 #include <torch.h>
 
-// UDP specific
+// Art-Net specific
 #define ART_NET_PORT 6454
 
-// Opcodes
+// Art-Net Opcodes
 #define ART_POLL 0x2000
 #define ART_POLL_REPLY 0x2100
 #define ART_DMX 0x5000
@@ -17,12 +17,11 @@
 #define ART_IP_PROG 0xf800
 #define ART_ADDRESS 0x6000
 
-
 // Buffers
 #define MAX_BUFFER_ARTNET 530
 
 // Packet
-#define ART_NET_ID "Art-Net\0"
+#define ART_NET_ID "Art-Net"
 #define ART_DMX_START 17
 
 AsyncUDP Udp;
@@ -56,7 +55,7 @@ struct artnet_torch_params_s artnetTorchParams;
 struct art_poll_reply_s {
   uint8_t  id[8];
   uint16_t opCode;
-  IPAddress ip;
+  uint8_t  ip[4];
   uint16_t port;
   uint8_t  ver[2];
   uint8_t  sub[2];
@@ -81,7 +80,7 @@ struct art_poll_reply_s {
   uint8_t  sp3;
   uint8_t  style;
   uint8_t  mac[6];
-  IPAddress bindip;
+  uint8_t  bindip[4];
   uint8_t  bindindex;
   uint8_t  status2;
   uint8_t  filler[26];
@@ -124,7 +123,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       Serial.print(":");
       Serial.print(packet.remotePort());
       Serial.print(", sent [OpPollReply] packet to ");
-      Serial.print(artnet.unicast);
+      Serial.print(packet.remoteIP());
       Serial.print(":");
       Serial.println(packet.remotePort());
       break;
@@ -195,30 +194,23 @@ void receiveArtDmx(void)
 
 void sendArtPollReply(void) {
 
-  sprintf((char *)artnet.id, ART_NET_ID);
-  memcpy(artPollReply.id, artnet.id, sizeof(artPollReply.id));
-  memcpy(artPollReply.ip, artnet.node_ip_address, sizeof(artPollReply.ip));
+  // artnet.node_ip_address = WiFi.localIP();
 
-  // Serial.println(artnet.id);
-  // Serial.println(artnet.node_ip_address);
+  artnet.node_ip_address[0] = WiFi.localIP()[0];
+  artnet.node_ip_address[1] = WiFi.localIP()[1];
+  artnet.node_ip_address[2] = WiFi.localIP()[2];
+  artnet.node_ip_address[3] = WiFi.localIP()[3];
+
+  sprintf((char *)artnet.id, ART_NET_ID);
+  memcpy(artPollReply.id, artnet.id, sizeof(artnet.id));
+  memcpy(artPollReply.ip, artnet.node_ip_address, sizeof(artnet.node_ip_address));
 
   artPollReply.opCode = ART_POLL_REPLY;
   artPollReply.port = ART_NET_PORT;
 
-  /*
   memset(artPollReply.goodinput, 0x80, 4);
   memset(artPollReply.goodoutput, 0x80, 4);
   memset(artPollReply.porttypes, 0x80, 4);
-  */
-
-  /*
-  uint8_t shortname[18] = {0};
-  uint8_t longname[64] = {0};
-  sprintf((char *)shortname, "ArtNet Torch");
-  sprintf((char *)longname, "ArtNet Torch");
-  memcpy(artPollReply.shortname, shortname, sizeof(shortname));
-  memcpy(artPollReply.longname, longname, sizeof(longname));
-  */
 
   strcpy((char *)artPollReply.shortname, "ArtNet Torch");
   strcpy((char *)artPollReply.longname, "ArtNet Torch");
@@ -238,47 +230,18 @@ void sendArtPollReply(void) {
   artPollReply.swremote     = 0;
   artPollReply.style        = 0;
 
-  // artPollReply.numports[0]  = (artnet.numports >> 8) & 0xff;
-  // artPollReply.numports[1]  = artnet.numports & 0xff00;
-
-  artPollReply.numports[0] = 1;
-  artPollReply.numports[1] = 0;
+  artPollReply.numports[0] = 0;
+  artPollReply.numports[1] = 1;
 
   artPollReply.status2     = 0x08;
 
-  /*
-  artPollReply.bindip[0] = artnet.node_ip_address[0];
-  artPollReply.bindip[1] = artnet.node_ip_address[1];
-  artPollReply.bindip[2] = artnet.node_ip_address[2];
-  artPollReply.bindip[3] = artnet.node_ip_address[3];
-  */
-
-  artPollReply.bindip = artnet.node_ip_address;
-
-  // uint8_t swin[4]  = {0}; // Each Hex number is the Universe the input will listen on
-  // uint8_t swout[4] = {0}; // Each Hex number is the Universe the output will listen on
-  // swout[0] = artnet.listenUniverse; // We set it here for channel 1
-  // swin[0] = artnet.listenUniverse; // We set it here for channel 1
-
-  /*
-  for(uint8_t i = 0; i < 4; i++)
-  {
-    artPollReply.swout[i] = swout[i];
-    artPollReply.swin[i] = swin[i];
-  }
-  */
+  memcpy(artPollReply.bindip, artnet.node_ip_address, 4);
 
   artPollReply.swout[0] = artnet.listenUniverse;
   artPollReply.swin[0] = artnet.listenUniverse;
 
   sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
-  // Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
-  // Udp.flush();
-
-
-  // Udp.broadcast((uint8_t *)&artPollReply, sizeof(artPollReply)); //send ArtNet OpPollReply
-  // Udp.sendTo((uint8_t *)&artPollReply, artnet.unicast, ART_NET_PORT);
   Udp.writeTo((uint8_t *)&artPollReply, sizeof(artPollReply), artnet.unicast, ART_NET_PORT);
 }
 
