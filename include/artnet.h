@@ -97,20 +97,33 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
     // Serial.println("receiveUDP");
-    memcpy(artnet.packet, packet.data(), packet.length());
+    if(packet.length() > MAX_BUFFER_ARTNET)
+    {
+      Serial.println("*ArtNet [Packet size too big]");
+      Udp.flush();
+      return;
+    }
+    else
+    {
+      memset(artnet.packet, 0x00, sizeof(artnet.packet));
+      memcpy(artnet.packet, packet.data(), packet.length());
+    }
     // Serial.write(packet.data(), packet.length());
     // Serial.println();
 
     // Check that packetID is "Art-Net" else return
-    for (byte i = 0 ; i < 8 ; i++)
+
+    if (strncmp((char *)artnet.packet, ART_NET_ID, 7) != 0)
     {
-      if (artnet.packet[i] != ART_NET_ID[i])
-      return;
+    Serial.println("*ArtNet [Malformed ArtNet header]");
+    Udp.flush();
+    return;
     }
 
     artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
     artnet.unicast = packet.remoteIP();
     artnet.node_ip_address = packet.localIP();
+    sprintf((char *)artnet.id, ART_NET_ID);
 
     digitalWrite(ledPin, 0);  // Light Led when receiving Artnet data
 
@@ -130,6 +143,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     case ART_DMX: // Artnet OpDmx packet received
       static int num;
+      receiveArtDmx();
       EVERY_N_SECONDS(1)
       {
         Serial.printf("*ArtNet [%d OpDmx] packets received from " , num);
@@ -140,7 +154,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
         Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
         num = 0;
       }
-      receiveArtDmx();
       num++;
       break;
 
@@ -156,7 +169,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 
     default: // Unknown Artnet Packed received
       Serial.printf("*ArtNet [Unknown] packet received, OpCode %#06x, ", artnet.opcode);
-      Serial.printf("NOT IMPLEMENTED of course.\n");
+      Serial.printf("NOT IMPLEMENTED.\n");
       break;
 
     }
@@ -170,6 +183,8 @@ void receiveArtDmx(void)
 
   if(artnet.universe != artnet.listenUniverse)
   {
+   Serial.print("*Artnet [wrong universe]");
+   Udp.flush();
    return;
   }
 
@@ -194,14 +209,6 @@ void receiveArtDmx(void)
 
 void sendArtPollReply(void) {
 
-  // artnet.node_ip_address = WiFi.localIP();
-
-  artnet.node_ip_address[0] = WiFi.localIP()[0];
-  artnet.node_ip_address[1] = WiFi.localIP()[1];
-  artnet.node_ip_address[2] = WiFi.localIP()[2];
-  artnet.node_ip_address[3] = WiFi.localIP()[3];
-
-  sprintf((char *)artnet.id, ART_NET_ID);
   memcpy(artPollReply.id, artnet.id, sizeof(artnet.id));
   memcpy(artPollReply.ip, artnet.node_ip_address, sizeof(artnet.node_ip_address));
 
