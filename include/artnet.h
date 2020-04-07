@@ -188,6 +188,8 @@ void receiveArtDmx(void)
    return;
   }
 
+
+
   /* Artnet Channel mapping:
      1: brightness;
      2,3,4: colorRGB;

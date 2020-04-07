@@ -199,6 +199,9 @@ void loop()
     // Serial.printf("*Memory [Free heap] %d\n", ESP.getFreeHeap());
     // Serial.printf("*Memory [Free stack] %d\n", ESP.getFreeContStack());
 
+    // Print Uptime
+    Serial.printf("*Uptime [%ld s]\n", millis()/1000);
+
     /* Blink LED */
     digitalWrite(ledPin, 0);  // LED on
     delay(2);  // is this ms or seconds? It is ms.
