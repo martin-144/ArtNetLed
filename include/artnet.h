@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <ESP8266WiFi.h>
-#include <ESPAsyncUDP.h>
+#include <WiFiUdp.h>
 #include <torch.h>
 
 // Art-Net specific
@@ -24,13 +24,13 @@
 #define ART_NET_ID "Art-Net"
 #define ART_DMX_START 17
 
-AsyncUDP Udp;
+WiFiUDP Udp;
 
 extern const uint8_t ledPin;
 
 struct artnet_dmx_params_s {
   // IPAddress broadcast = {255, 255, 255, 255};
-  IPAddress unicast;
+  IPAddress host_ip_address;
   IPAddress node_ip_address;
   uint16_t opcode;
   uint16_t universe;
@@ -90,40 +90,46 @@ struct art_poll_reply_s artPollReply;
 void sendArtPollReply(void);
 void receiveArtDmx(void);
 
-void receiveUdp(AsyncUDPPacket &packet)
+void receiveUdp()
 /*
 Linux command to test:
 echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 */
 {
     // Serial.println("receiveUDP");
-    if(packet.length() > MAX_BUFFER_ARTNET)
+    int packetSize = Udp.parsePacket();
+
+    if(packetSize > MAX_BUFFER_ARTNET)
     {
       Serial.println("*ArtNet [Packet size too big]");
       Udp.flush();
       return;
     }
-    else
+
+    // Test if a packet has been recieved
+    if(packetSize)
     {
-      memset(artnet.packet, 0x00, sizeof(artnet.packet));
-      memcpy(artnet.packet, packet.data(), packet.length());
-    }
-    // Serial.write(packet.data(), packet.length());
-    // Serial.println();
+    // Print received byte
+    // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort()); // For Debug
+
+    // Read Artnet Header
+    Udp.read(artnet.packet, MAX_BUFFER_ARTNET);
 
     // Check that packetID is "Art-Net" else return
-
     if (strncmp((char *)artnet.packet, ART_NET_ID, 7) != 0)
     {
-    Serial.println("*ArtNet [Malformed ArtNet header]");
-    Udp.flush();
-    return;
+      Serial.println("*ArtNet [Malformed ArtNet header]");
+      Udp.flush();
+      return;
     }
 
-    artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
-    artnet.unicast = packet.remoteIP();
-    artnet.node_ip_address = packet.localIP();
     sprintf((char *)artnet.id, ART_NET_ID);
+    artnet.opcode = artnet.packet[8] | artnet.packet[9] << 8;
+    artnet.universe = artnet.packet[14] | artnet.packet[15] << 8;
+    artnet.node_ip_address = WiFi.localIP();
+    artnet.host_ip_address = Udp.remoteIP();
+
+    // Serial.println(WiFi.localIP());
 
     digitalWrite(ledPin, 0);  // Light Led when receiving Artnet data
 
@@ -132,13 +138,13 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     case ART_POLL: // ArtNet OpPoll received
       sendArtPollReply();
       Serial.print("*ArtNet [OpPoll] received from ");
-      Serial.print(packet.remoteIP());
+      Serial.print(Udp.remoteIP());
       Serial.print(":");
-      Serial.print(packet.remotePort());
+      Serial.print(Udp.remotePort());
       Serial.print(", sent [OpPollReply] packet to ");
-      Serial.print(packet.remoteIP());
+      Serial.print(Udp.remoteIP());
       Serial.print(":");
-      Serial.println(packet.remotePort());
+      Serial.println(Udp.remotePort());
       break;
 
     case ART_DMX: // Artnet OpDmx packet received
@@ -147,9 +153,9 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
       EVERY_N_SECONDS(1)
       {
         Serial.printf("*ArtNet [%d OpDmx] packets received from " , num);
-        Serial.print(packet.remoteIP());
+        Serial.print(Udp.remoteIP());
         Serial.print(":");
-        Serial.print(packet.remotePort());
+        Serial.print(Udp.remotePort());
         Serial.printf(", Universe %d. ", artnet.universe);
         Serial.printf("Listening on Universe %d, DMX Channel %d.\n", artnet.listenUniverse, artnet.dmxChannel);
         num = 0;
@@ -175,6 +181,7 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     }
     digitalWrite(ledPin, 1);  // Unlight LED
 }
+}
 
 void receiveArtDmx(void)
 {
@@ -187,8 +194,6 @@ void receiveArtDmx(void)
    Udp.flush();
    return;
   }
-
-
 
   /* Artnet Channel mapping:
      1: brightness;
@@ -244,14 +249,16 @@ void sendArtPollReply(void) {
 
   artPollReply.status2     = 0x08;
 
-  memcpy(artPollReply.bindip, artnet.node_ip_address, 4);
+  memcpy(artPollReply.bindip, artnet.node_ip_address, sizeof(artnet.node_ip_address));
 
   artPollReply.swout[0] = artnet.listenUniverse;
   artPollReply.swin[0] = artnet.listenUniverse;
 
   sprintf((char *)artPollReply.nodereport, "%d DMX output universes active.", artnet.numports);
 
-  Udp.writeTo((uint8_t *)&artPollReply, sizeof(artPollReply), artnet.unicast, ART_NET_PORT);
+  Udp.beginPacket(artnet.host_ip_address, ART_NET_PORT); //send ArtNet OpPollReply
+  Udp.write((uint8_t *)&artPollReply, sizeof(artPollReply));
+  Udp.endPacket();
 }
 
 #endif // ARDUINO_ARTNET_H

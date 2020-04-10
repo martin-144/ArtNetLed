@@ -4,8 +4,8 @@
 //  #define FASTLED_ESP8266_DMA // Don't use with stock FastLED
 //  https://github.com/coryking/FastLED.git // Not yet tested
 
-#include <ESPAsyncUDP.h>
 #include <EasyButton.h>
+#include <ESP8266WiFi.h>
 #include <FastLED.h>
 #include <spiffs.h>
 #include <wifimanager.h>
@@ -24,6 +24,7 @@ const uint8_t boardIdentPin = D5; // Equals 0x0e
 
 // set Flash button for EasyButton
 EasyButton flashButton(flashButtonPin);
+// void recieveUdp();
 
 // Callback function to be called when the button is pressed.
 void onPressedForDuration()
@@ -86,8 +87,7 @@ void setup()
   flashButton.onPressedFor(4000, onPressedForDuration);
 
   // set up UDP
-  Udp.listen(ART_NET_PORT);
-  Udp.onPacket(receiveUdp);
+  Udp.begin(ART_NET_PORT);
 
   // start FastLED port
   FastLED.addLeds<WS2812, fastLedPin, GRB>(leds, numLeds);
@@ -107,7 +107,7 @@ void loop()
   // Serial.println("Loop");
 
   /* get Art-Net Data */
-  // recieveUdp(); // Is done by the callback from AsyncUDP
+  receiveUdp(); // Is done by the callback from AsyncUDP
 
   // prepare Torch animation
   EVERY_N_MILLISECONDS_I(animationTimer, 20)
