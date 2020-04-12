@@ -6,6 +6,7 @@
 
 #include <EasyButton.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiGratuitous.h>
 #include <FastLED.h>
 #include <spiffs.h>
 #include <wifimanager.h>
@@ -40,6 +41,7 @@ void onPressedForDuration()
   ESP.restart();
 }
 
+
 // Main program
 // ============
 
@@ -50,6 +52,7 @@ void setup()
   delay(2000);
   Serial.print("Serial Starting...\n");
 
+  // Disable WiFi sleep mode
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
 
   // set LED port
@@ -87,6 +90,7 @@ void setup()
   flashButton.onPressedFor(4000, onPressedForDuration);
 
   // set up UDP
+  WiFi.begin();
   Udp.begin(ART_NET_PORT);
 
   // start FastLED port
@@ -198,6 +202,9 @@ void loop()
     // WiFi.printDiag(Serial);
     // Serial.printf("*Memory [Free heap] %d\n", ESP.getFreeHeap());
     // Serial.printf("*Memory [Free stack] %d\n", ESP.getFreeContStack());
+
+    // send gratuitous ARP
+    // WiFi.stationKeepAliveNow();
 
     // Print Uptime
     Serial.printf("*Uptime [%ld s]\n", millis()/1000);

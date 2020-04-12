@@ -25,7 +25,6 @@
 #define ART_DMX_START 17
 
 WiFiUDP Udp;
-
 extern const uint8_t ledPin;
 
 struct artnet_dmx_params_s {
@@ -128,8 +127,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     artnet.universe = artnet.packet[14] | artnet.packet[15] << 8;
     artnet.node_ip_address = WiFi.localIP();
     artnet.host_ip_address = Udp.remoteIP();
-
-    // Serial.println(WiFi.localIP());
 
     digitalWrite(ledPin, 0);  // Light Led when receiving Artnet data
 
