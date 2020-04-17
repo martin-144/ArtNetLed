@@ -6,7 +6,6 @@
 
 #include <EasyButton.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiGratuitous.h>
 #include <FastLED.h>
 #include <spiffs.h>
 #include <wifimanager.h>

@@ -133,12 +133,13 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
     switch(artnet.opcode)
     {
     case ART_POLL: // ArtNet OpPoll received
-      sendArtPollReply();
       Serial.print("*ArtNet [OpPoll] received from ");
       Serial.print(Udp.remoteIP());
       Serial.print(":");
       Serial.print(Udp.remotePort());
-      Serial.print(", sent [OpPollReply] packet to ");
+      Serial.println();
+      sendArtPollReply();
+      Serial.print("*ArtNet [OpPollReply] packet sent to ");
       Serial.print(Udp.remoteIP());
       Serial.print(":");
       Serial.println(Udp.remotePort());
