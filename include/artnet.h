@@ -184,7 +184,6 @@ echo -n "Test-Command" | nc -u -w0 192.168.178.31 6454
 void receiveArtDmx(void)
 {
   artnet.universe = artnet.packet[14] | artnet.packet[15] << 8;
-  // artnet.dmxLength = artnet.packet[17] | artnet.packet[16] << 8;
 
   if(artnet.universe != artnet.listenUniverse)
   {
