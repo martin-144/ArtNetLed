@@ -1,8 +1,6 @@
 #define FASTLED_ALLOW_INTERRUPTS 1
 #define INTERRUPT_THRESHOLD 1
 #define FASTLED_ESP8266_RAW_PIN_ORDER
-//  #define FASTLED_ESP8266_DMA // Don't use with stock FastLED
-//  https://github.com/coryking/FastLED.git // Not yet tested
 
 #include <EasyButton.h>
 #include <ESP8266WiFi.h>
@@ -24,7 +22,6 @@ const uint8_t boardIdentPin = D5; // Equals 0x0e
 
 // set Flash button for EasyButton
 EasyButton flashButton(flashButtonPin);
-// void recieveUdp();
 
 // Callback function to be called when the button is pressed.
 void onPressedForDuration()
